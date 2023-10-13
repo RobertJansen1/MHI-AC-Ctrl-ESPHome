@@ -68,7 +68,7 @@ const byte opdata[][2] PROGMEM = {
 #define CBL2 DB26 + 1
 
 enum ErrMsg {   // Error message enum
-  err_msg_valid_frame = 0, err_msg_invalid_signature = -1, err_msg_invalid_checksum = -2, err_msg_timeout_SCK_low = -3, err_msg_timeout_SCK_high = -4
+  err_msg_valid_frame = 0, err_msg_invalid_signature = -1, err_msg_invalid_checksum = -2, err_msg_timeout_SCK_low = -3, err_msg_timeout_SCK_high = -4, err_msg_invalid_checksum_long = -5
 };
 
 enum ACType {   // Type enum

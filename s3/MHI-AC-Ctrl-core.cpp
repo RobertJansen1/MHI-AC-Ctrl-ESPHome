@@ -270,7 +270,7 @@ static byte MOSI_frame[33];
   if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
     checksum = calc_checksumFrame33(MOSI_frame);
     if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
-      return err_msg_invalid_checksum;
+      return err_msg_invalid_checksum_long;
   }
 
   if (new_datapacket_received) {
