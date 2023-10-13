@@ -31,7 +31,7 @@ const byte opdata[][2] PROGMEM = {
 #define NoFramesPerOpDataCycle 400             // number of frames used for a OpData request cycle; will be 20s (20 frames are 1s)
 #define minTimeInternalTroom 5000              // minimal time in ms used for Troom internal sensor changes for publishing to avoid jitter 
 
-// pin defintions
+// pin defintions for lolin s3 mini
 #define SCK_PIN  12 // s3 mini
 #define MOSI_PIN 11 // s3 mini
 #define MISO_PIN 13 // s3 mini
