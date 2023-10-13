@@ -1,4 +1,4 @@
-#include "MHI-AC-Ctrl-core-s3.h"
+#include "MHI-AC-Ctrl-core.h"
 #define ROOM_TEMP_MQTT 1
 #include <vector>
 #include <string>

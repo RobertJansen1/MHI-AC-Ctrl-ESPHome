@@ -1,7 +1,7 @@
 // MHI-AC-Ctrol-core
 // implements the core functions (read & write SPI)
 
-#include "MHI-AC-Ctrl-core-s3.h"
+#include "MHI-AC-Ctrl-core.h"
 
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
