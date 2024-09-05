@@ -11,7 +11,7 @@ CONF_VANES_UD = 'vanes_ud'
 CONF_VANES_LR = 'vanes_lr'
 
 mhiacctrl = cg.esphome_ns.namespace('mhiacctrl')
-MhiAcCtrl = cg.global_ns.class_('MhiAcCtrl', cg.Component, climate.Climate)
+MhiAcCtrl = mhiacctrl.class_('MhiAcCtrl', cg.Component, climate.Climate)
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(MhiAcCtrl),
@@ -26,6 +26,12 @@ async def to_code(config):
     await cg.register_component(var, config)
     cg.add(var.set_frame_size(config[CONF_FRAME_SIZE]))
     cg.add(var.set_room_temp_api_timeout(config[CONF_ROOM_TEMP_TIMEOUT]))
-    cg.add(var.set_vanes(config[CONF_VANES_UD]))
+    cg.add(var.set_vanesUD(config[CONF_VANES_UD]))
     cg.add(var.set_vanesLR(config[CONF_VANES_LR]))
     cg.add(var.get_binary_sensors())
+
+    # Add the fan control logic
+    @cg.add(var.on_value)
+    def on_value(state):
+        cg.add(var.handle_fan_control_ud(state))
+        cg.add(var.handle_fan_control_lr(state))

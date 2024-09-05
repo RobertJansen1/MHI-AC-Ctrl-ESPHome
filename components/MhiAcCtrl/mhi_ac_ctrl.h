@@ -41,6 +41,9 @@ static const char* TAG = "mhi_ac_ctrl";
 
 unsigned long room_temp_api_timeout_ms = millis();
 
+namespace esphome {
+namespace mhi_ac_ctrl {
+
 class MhiAcCtrl : public climate::Climate,
                   public Component,
                   public CallbackInterface_Status {
@@ -536,6 +539,37 @@ public:
         }
     }
 
+    void set_vanesUD(uint8_t vanesUD) {
+        // Code to set vanes
+        ESP_LOGD("main", "setting vanesUD to: %i", vanesUD);
+        // Add your logic to set the vanes here
+        this->publish_state(vanesUD);  // Publish the state back to Home Assistant
+    }
+
+    void handle_fan_control_ud(const std::string &state) {
+        uint8_t vanesUD = 0;  // Initialize the vanesUD variable
+        if (state == "3D Auto") {
+            // Assuming fan_control_3Dauto is another switch or component
+            // id(fan_control_3Dauto).publish_state(true);
+        } else if (state == "Up") {
+            vanesUD = 1;
+        } else if (state == "Up/Center") {
+            vanesUD = 2;
+        } else if (state == "Center/Down") {
+            vanesUD = 3;
+        } else if (state == "Down") {
+            vanesUD = 4;
+        } else if (state == "Swing") {
+            vanesUD = 5;
+        }
+        if ((vanesUD > 0) && (vanesUD < 6)) {
+            this->set_vanes(vanesUD);
+        } else {
+            ESP_LOGD("main", "Not setting vanesUD: %i", vanesUD);
+        }
+    }
+
+
     void set_vanes(int value) {
         mhi_ac_ctrl_core.set_vanes(value);
         ESP_LOGD("mhi_ac_ctrl", "set vanes: %i", value);
@@ -715,3 +749,5 @@ protected:
     Sensor vanesLR_pos_old_;
     Sensor Dauto_;
 };
+}  // namespace mhi_ac_ctrl
+}  // namespace esphome
