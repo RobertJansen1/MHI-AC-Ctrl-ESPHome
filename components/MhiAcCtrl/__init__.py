@@ -30,17 +30,11 @@ async def to_code(config):
     cg.add(var.set_vanesLR(config[CONF_VANES_LR]))
     cg.add(var.get_binary_sensors())
 
-    # Add the fan control logic
-    async def on_value(state):
-        if state == "Up":
-            cg.add(var.set_vanes(1))
-        elif state == "Up/Center":
-            cg.add(var.set_vanes(2))
-        elif state == "Center/Down":
-            cg.add(var.set_vanes(3))
-        elif state == "Down":
-            cg.add(var.set_vanes(4))
-        elif state == "Swing":
-            cg.add(var.set_vanes(5))
-
-    var.set_on_value(on_value)
+    # Define the fan control logic as a method of MhiAcCtrl
+    cg.add(var.set_on_value(cg.std_function(lambda state: [
+        cg.If(state == "Up", var.set_vanes(1)),
+        cg.If(state == "Up/Center", var.set_vanes(2)),
+        cg.If(state == "Center/Down", var.set_vanes(3)),
+        cg.If(state == "Down", var.set_vanes(4)),
+        cg.If(state == "Swing", var.set_vanes(5))
+    ])))
