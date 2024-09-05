@@ -45,7 +45,7 @@ namespace esphome {
 namespace mhi_ac_ctrl {
 
 class MhiAcCtrl : public climate::Climate,
-                  public Component,
+                  public PollingComponent,
                   public CallbackInterface_Status {
 public:
     void setup() override
