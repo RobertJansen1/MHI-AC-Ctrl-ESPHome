@@ -32,6 +32,6 @@ async def to_code(config):
 
     # Add the fan control logic
     @cg.add(var.on_value)
-    def on_value(state):
+    async def on_value(state):
         cg.add(var.handle_fan_control_ud(state))
         cg.add(var.handle_fan_control_lr(state))
