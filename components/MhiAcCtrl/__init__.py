@@ -31,7 +31,7 @@ async def to_code(config):
     cg.add(var.get_binary_sensors())
 
     # Add the fan control logic
-    @cg.add(var.on_value)
+    @cg.add(var)
     async def on_value(state):
         cg.add(var.handle_fan_control_ud(state))
         cg.add(var.handle_fan_control_lr(state))
