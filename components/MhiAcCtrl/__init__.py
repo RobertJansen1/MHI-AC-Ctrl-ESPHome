@@ -33,5 +33,15 @@ async def to_code(config):
     # Add the fan control logic
     @cg.add(var)
     async def on_value(state):
-        cg.add(var.handle_fan_control_ud(state))
-        cg.add(var.handle_fan_control_lr(state))
+        if state == "Up":
+            cg.add(var.set_vanes(1))
+        elif state == "Up/Center":
+            cg.add(var.set_vanes(2))
+        elif state == "Center/Down":
+            cg.add(var.set_vanes(3))
+        elif state == "Down":
+            cg.add(var.set_vanes(4))
+        elif state == "Swing":
+            cg.add(var.set_vanes(5))
+
+    var.set_on_value(on_value)
