@@ -31,7 +31,6 @@ async def to_code(config):
     cg.add(var.get_binary_sensors())
 
     # Add the fan control logic
-    @cg.add(var)
     async def on_value(state):
         if state == "Up":
             cg.add(var.set_vanes(1))
