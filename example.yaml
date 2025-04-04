@@ -49,7 +49,7 @@ substitutions:
 #   port: 80
 
 external_components:
-  - source: github://ginkage/MHI-AC-Ctrl-ESPHome@master
+  - source: github://ginkage/MHI-AC-Ctrl-ESPHome@v3.0
     components: [ MhiAcCtrl ]
 
 MhiAcCtrl:
