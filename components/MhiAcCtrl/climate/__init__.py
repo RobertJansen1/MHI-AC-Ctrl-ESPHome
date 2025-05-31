@@ -6,8 +6,8 @@ from esphome.const import CONF_ID
 from .. import MhiAcCtrl, CONF_MHI_AC_CTRL_ID
 
 # Define the namespace and register the MhiClimate class
-mhi_ns = cg.esphome_ns.namespace('mhiacctrl')
-MhiClimate = mhi_ns.class_('MhiClimate', cg.Component, climate.Climate)
+mhi_ns = cg.esphome_ns.namespace('mhi')
+MhiClimate = mhi_ns.class_('MhiClimate', climate.Climate, cg.Component, cg.Parented)
 
 CONFIG_SCHEMA = climate.climate_schema(
     cv.Schema(
