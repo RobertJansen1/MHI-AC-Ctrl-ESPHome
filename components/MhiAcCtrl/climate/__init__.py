@@ -6,7 +6,7 @@ from esphome.const import CONF_ID
 from .. import MhiAcCtrl, CONF_MHI_AC_CTRL_ID
 
 # Define the namespace and register the MhiClimate class
-mhi_ns = cg.esphome_ns.namespace('mhiacctrl')
+mhi_ns = cg.esphome_ns.namespace('mhi')
 MhiClimate = mhi_ns.class_('MhiClimate', cg.Component, climate.Climate)
 
 CONFIG_SCHEMA = climate.climate_schema(
@@ -23,6 +23,6 @@ CONFIG_SCHEMA = climate.climate_schema(
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID], MhiClimate)
     mhi = await cg.get_variable(config[CONF_MHI_AC_CTRL_ID])
-    await cg.register_parented(var, mhi)
+    cg.add(var.set_parent(mhi))
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
