@@ -10,17 +10,19 @@ from .. import MhiAcCtrl, CONF_MHI_AC_CTRL_ID
 mhi_ns = cg.esphome_ns.namespace('mhi')
 MhiClimate = mhi_ns.class_('MhiClimate', cg.Component, climate.Climate)
 
-CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(
-    {
-        cv.GenerateID(): cv.declare_id(MhiClimate),
-        cv.GenerateID(CONF_MHI_AC_CTRL_ID): cv.use_id(MhiAcCtrl),
-    }
+CONFIG_SCHEMA = climate.climate_schema(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(MhiClimate),
+            cv.GenerateID(CONF_MHI_AC_CTRL_ID): cv.use_id(MhiAcCtrl),
+        }
+    )
 ).extend(cv.COMPONENT_SCHEMA)
 
 
 @coroutine
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = cg.new_Pvariable(config[CONF_ID], MhiClimate)
     mhi = await cg.get_variable(config[CONF_MHI_AC_CTRL_ID])
     await cg.register_parented(var, mhi)
     await cg.register_component(var, config)
