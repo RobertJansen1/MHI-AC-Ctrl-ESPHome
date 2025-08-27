@@ -22,6 +22,7 @@ void MhiPlatform::setup() {
     }
 
     this->mhi_ac_ctrl_core_.MHIAcCtrlStatus(this);
+    this->mhi_ac_ctrl_core_.set_read_only_mode(this->read_only_mode_);
     this->mhi_ac_ctrl_core_.init();
     this->mhi_ac_ctrl_core_.set_frame_size(this->frame_size_); // set framesize. Only 20 (legacy) or 33 (includes 3D auto and vertical vanes) possible
 
@@ -31,6 +32,10 @@ void MhiPlatform::setup() {
         });
         this->transfer_room_temperature(this->external_temperature_sensor_->state);
     }
+}
+
+void MhiPlatform::set_read_only_mode(bool enabled) {
+    this->read_only_mode_ = enabled;
 }
 
 void MhiPlatform::set_frame_size(int framesize) {

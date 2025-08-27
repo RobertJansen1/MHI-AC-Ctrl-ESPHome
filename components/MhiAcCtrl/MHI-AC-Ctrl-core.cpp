@@ -122,6 +122,10 @@ void MHI_AC_Ctrl_Core::set_frame_size(byte framesize) {
     frameSize = framesize;
 }
 
+void MHI_AC_Ctrl_Core::set_read_only_mode(bool enabled) {
+  read_only_mode_ = enabled;
+}
+
 int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   const byte opdataCnt = sizeof(opdata) / sizeof(byte) / 2;
   static byte opdataNo = 0;               //
@@ -150,7 +154,9 @@ static byte MOSI_frame[33];
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
   }
   // build the next MISO frame
-
+  if (!read_only_mode_) {
+    // if not in read only mode, update MISO frame with new settings
+    // else don't change MISO frame, just listen to MOSI
   doubleframe = !doubleframe;             // toggle every frame
   MISO_frame[DB14] = doubleframe << 2;    // MISO_frame[DB14] bit2 toggles with every frame
   
@@ -232,6 +238,7 @@ static byte MOSI_frame[33];
 
     checksum = calc_checksumFrame33(MISO_frame);
     MISO_frame[CBL2] = lowByte(checksum);
+    }
   }
   //Serial.println();
   //Serial.print(F("MISO:"));

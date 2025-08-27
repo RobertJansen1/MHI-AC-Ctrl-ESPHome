@@ -12,6 +12,7 @@ CONF_VANES_LR = 'initial_horizontal_vanes_position'
 CONF_SCK_PIN = "sck_pin"
 CONF_MOSI_PIN = "mosi_pin"
 CONF_MISO_PIN = "miso_pin"
+CONF_READ_ONLY_MODE = 'read_only_mode'
 
 CONF_VANES_POSITION = 'position'
 CONF_TEMPERATURE = 'temperature'
@@ -34,6 +35,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional(CONF_SCK_PIN): cv.int_,
     cv.Optional(CONF_MOSI_PIN): cv.int_,
     cv.Optional(CONF_MISO_PIN): cv.int_,
+    cv.Optional(CONF_READ_ONLY_MODE, default=False): cv.boolean,
 }).extend(cv.COMPONENT_SCHEMA)
 
 async def to_code(config):
@@ -54,6 +56,8 @@ async def to_code(config):
         cg.add(var.set_mosi_pin(config[CONF_MOSI_PIN]))
     if CONF_MISO_PIN in config:
         cg.add(var.set_miso_pin(config[CONF_MISO_PIN]))
+    if CONF_READ_ONLY_MODE in config:
+        cg.add(var.set_read_only_mode(config[CONF_READ_ONLY_MODE]))
 
 @automation.register_action(
     "climate.mhi.set_vertical_vanes",

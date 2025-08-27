@@ -163,6 +163,7 @@ class MHI_AC_Ctrl_Core {
     byte new_VanesLR1 = 0;
     byte new_3Dauto = 0;
     byte frameSize = 20;
+    bool read_only_mode_ = false;
 
     CallbackInterface_Status *m_cbiStatus;
 
@@ -187,5 +188,6 @@ class MHI_AC_Ctrl_Core {
     void set_frame_size(byte framesize);  // set framesize to 20 or 33
     void set_3Dauto(AC3Dauto Dauto);      // set the requested 3D auto mode
     void set_vanesLR(uint vanesLR);       // set the vanes vertical position
+    void set_read_only_mode(bool enabled); // set read only mode (no writes to AC)
 
 };

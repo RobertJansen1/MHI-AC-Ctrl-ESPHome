@@ -38,6 +38,7 @@ public:
     void set_mosi_pin(int pin) { this->mosi_pin_ = pin; };
     void set_miso_pin(int pin) { this->miso_pin_ = pin; };
     void add_listener(MhiStatusListener* listener);
+    void set_read_only_mode(bool enabled);
 
 
 private:
@@ -51,6 +52,7 @@ private:
     int sck_pin_ = -1;
     int mosi_pin_ = -1;
     int miso_pin_ = -1;
+    bool read_only_mode_ = false;
 
     MHI_AC_Ctrl_Core mhi_ac_ctrl_core_;
 
