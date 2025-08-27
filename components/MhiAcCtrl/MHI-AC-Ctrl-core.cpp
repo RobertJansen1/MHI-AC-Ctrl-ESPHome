@@ -2,7 +2,7 @@
 // implements the core functions (read & write SPI)
 
 #include "MHI-AC-Ctrl-core.h"
-#include "esphome./core/log.h"
+#include "esphome/core/log.h"
 
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
