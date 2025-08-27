@@ -157,89 +157,89 @@ static byte MOSI_frame[33];
   if (!read_only_mode_) {
     // if not in read only mode, update MISO frame with new settings
     // else don't change MISO frame, just listen to MOSI
-  doubleframe = !doubleframe;             // toggle every frame
-  MISO_frame[DB14] = doubleframe << 2;    // MISO_frame[DB14] bit2 toggles with every frame
+    doubleframe = !doubleframe;             // toggle every frame
+    MISO_frame[DB14] = doubleframe << 2;    // MISO_frame[DB14] bit2 toggles with every frame
+    
+    // Requesting all different opdata's is an opdata cycle. A cycle will take 20s.
+    // With the current 20 different opdata's, every opdata request will take 1sec (interval).
+    // If there are only 5 different opdata's defined, these 5 will be spread about the 20s cycle. The interval will increase.
+    // requesting a new opdata will always start at a doubleframe start
+    if ((frame > (NoFramesPerOpDataCycle / opdataCnt)) && doubleframe ) {    // interval for requesting new opdata depending on de number of opdata requests
+      frame = 1;                              // start requesting new OpData
+    }
   
-  // Requesting all different opdata's is an opdata cycle. A cycle will take 20s.
-  // With the current 20 different opdata's, every opdata request will take 1sec (interval).
-  // If there are only 5 different opdata's defined, these 5 will be spread about the 20s cycle. The interval will increase.
-  // requesting a new opdata will always start at a doubleframe start
-  if ((frame > (NoFramesPerOpDataCycle / opdataCnt)) && doubleframe ) {    // interval for requesting new opdata depending on de number of opdata requests
-    frame = 1;                              // start requesting new OpData
-  }
-
-  if (frame++ <= 2) {                       // use opdata request only for 2 subsequent frames
-    if (doubleframe) {                      // start when MISO_frame[DB14] bit2 is set
-      if (erropdataCnt == 0) {
-        MISO_frame[DB6] = pgm_read_word(opdata + opdataNo);
-        MISO_frame[DB9] = pgm_read_word(opdata + opdataNo) >> 8;
-        opdataNo = (opdataNo + 1) % opdataCnt;
+    if (frame++ <= 2) {                       // use opdata request only for 2 subsequent frames
+      if (doubleframe) {                      // start when MISO_frame[DB14] bit2 is set
+        if (erropdataCnt == 0) {
+          MISO_frame[DB6] = pgm_read_word(opdata + opdataNo);
+          MISO_frame[DB9] = pgm_read_word(opdata + opdataNo) >> 8;
+          opdataNo = (opdataNo + 1) % opdataCnt;
+        }
+  
       }
-
     }
-  }
-  else  // reset OpData request
-  {
-    MISO_frame[DB6] = 0x80;
-    MISO_frame[DB9] = 0xff;    
-  }
+    else  // reset OpData request
+    {
+      MISO_frame[DB6] = 0x80;
+      MISO_frame[DB9] = 0xff;    
+    }
+    
+    if (doubleframe) {                        // and the other MISO data changes are updated when MISO_frame[DB14] bit2 is set
+      MISO_frame[DB0] = 0x00;
+      MISO_frame[DB1] = 0x00;
+      MISO_frame[DB2] = 0x00;
   
-  if (doubleframe) {                        // and the other MISO data changes are updated when MISO_frame[DB14] bit2 is set
-    MISO_frame[DB0] = 0x00;
-    MISO_frame[DB1] = 0x00;
-    MISO_frame[DB2] = 0x00;
-
-    if (erropdataCnt > 0) {                 // error operating data available
-      MISO_frame[DB6] = 0x80;
-      MISO_frame[DB9] = 0xff;
-      erropdataCnt--;
+      if (erropdataCnt > 0) {                 // error operating data available
+        MISO_frame[DB6] = 0x80;
+        MISO_frame[DB9] = 0xff;
+        erropdataCnt--;
+      }
+  
+      // set Power, Mode, Tsetpoint, Fan, Vanes
+      MISO_frame[DB0] = new_Power;
+      new_Power = 0;
+  
+      MISO_frame[DB0] |= new_Mode;
+      new_Mode = 0;
+  
+      MISO_frame[DB2] = new_Tsetpoint;
+      new_Tsetpoint = 0;
+  
+      MISO_frame[DB1] = new_Fan;
+      new_Fan = 0;
+  
+      MISO_frame[DB0] |= new_Vanes0;
+      MISO_frame[DB1] |= new_Vanes1;
+      new_Vanes0 = 0;
+      new_Vanes1 = 0;
+  
+      if (request_erropData) {
+        MISO_frame[DB6] = 0x80;
+        MISO_frame[DB9] = 0x45;
+        request_erropData = false;
+      }
     }
-
-    // set Power, Mode, Tsetpoint, Fan, Vanes
-    MISO_frame[DB0] = new_Power;
-    new_Power = 0;
-
-    MISO_frame[DB0] |= new_Mode;
-    new_Mode = 0;
-
-    MISO_frame[DB2] = new_Tsetpoint;
-    new_Tsetpoint = 0;
-
-    MISO_frame[DB1] = new_Fan;
-    new_Fan = 0;
-
-    MISO_frame[DB0] |= new_Vanes0;
-    MISO_frame[DB1] |= new_Vanes1;
-    new_Vanes0 = 0;
-    new_Vanes1 = 0;
-
-    if (request_erropData) {
-      MISO_frame[DB6] = 0x80;
-      MISO_frame[DB9] = 0x45;
-      request_erropData = false;
+  
+    MISO_frame[DB3] = new_Troom;  // from MQTT or DS18x20
+  
+    uint16_t checksum = calc_checksum(MISO_frame);
+    MISO_frame[CBH] = highByte(checksum);
+    MISO_frame[CBL] = lowByte(checksum);
+  
+    if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
+      MISO_frame[DB16] = 0;
+      MISO_frame[DB16] |= new_VanesLR1;
+      MISO_frame[DB17] = 0;
+      MISO_frame[DB17] |= new_VanesLR0;  
+      MISO_frame[DB17] |= new_3Dauto;
+      new_3Dauto = 0;
+      new_VanesLR0 = 0;
+      new_VanesLR1 = 0;
+  
+      checksum = calc_checksumFrame33(MISO_frame);
+      MISO_frame[CBL2] = lowByte(checksum);
     }
-  }
-
-  MISO_frame[DB3] = new_Troom;  // from MQTT or DS18x20
-
-  uint16_t checksum = calc_checksum(MISO_frame);
-  MISO_frame[CBH] = highByte(checksum);
-  MISO_frame[CBL] = lowByte(checksum);
-
-  if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
-    MISO_frame[DB16] = 0;
-    MISO_frame[DB16] |= new_VanesLR1;
-    MISO_frame[DB17] = 0;
-    MISO_frame[DB17] |= new_VanesLR0;  
-    MISO_frame[DB17] |= new_3Dauto;
-    new_3Dauto = 0;
-    new_VanesLR0 = 0;
-    new_VanesLR1 = 0;
-
-    checksum = calc_checksumFrame33(MISO_frame);
-    MISO_frame[CBL2] = lowByte(checksum);
-    }
-  }
+  }  
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
@@ -267,6 +267,15 @@ static byte MOSI_frame[33];
       MOSI_frame[byte_cnt] = MOSI_byte;
     }
   }
+  // Debug output for MISO and MOSI frames
+  char miso_frame_str[frameSize * 3 + 1];
+  char mosi_frame_str[frameSize * 3 + 1];
+  for (uint8_t i = 0; i < frameSize; i++) {
+    sprintf(miso_frame_str + i * 3, "%02X ", MISO_frame[i]);
+    sprintf(mosi_frame_str + i * 3, "%02X ", MOSI_frame[i]);
+  }
+  ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
+  ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
 
   checksum = calc_checksum(MOSI_frame);
   if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
