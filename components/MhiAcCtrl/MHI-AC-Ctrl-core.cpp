@@ -2,7 +2,7 @@
 // implements the core functions (read & write SPI)
 
 #include "MHI-AC-Ctrl-core.h"
-include "esphome./core/log.h"
+#include "esphome./core/log.h"
 
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
@@ -155,6 +155,8 @@ static byte MOSI_frame[33];
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
   }
   // build the next MISO frame
+  uint16_t calc_checksum(byte* frame);
+  uint16_t calc_checksumFrame33(byte* frame);
   uint16_t checksum = calc_checksum(MISO_frame);
   if (!read_only_mode_) {
     // if not in read only mode, update MISO frame with new settings
