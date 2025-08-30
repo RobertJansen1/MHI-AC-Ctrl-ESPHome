@@ -155,9 +155,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
   }
   // build the next MISO frame
-  uint16_t calc_checksum(byte* frame);
-  uint16_t calc_checksumFrame33(byte* frame);
-  uint16_t checksum = calc_checksum(MISO_frame);
   // if not in read only mode, update MISO frame with new settings
   // else don't change MISO frame, just listen to MOSI
   doubleframe = !doubleframe;             // toggle every frame
@@ -224,7 +221,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
   
   MISO_frame[DB3] = new_Troom;  // from MQTT or DS18x20
-  
+  uint16_t checksum = calc_checksum(MISO_frame);
   MISO_frame[CBH] = highByte(checksum);
   MISO_frame[CBL] = lowByte(checksum);
   
