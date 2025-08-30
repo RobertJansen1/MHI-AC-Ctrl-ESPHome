@@ -253,7 +253,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       SCKMillis = millis();
       while (digitalRead(SCK_PIN)) { // wait for falling edge
         if (millis() - startMillis > max_time_ms)
-        return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+          return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
       } 
       if (!read_only_mode_) {
         if ((MISO_frame[byte_cnt] & bit_mask) > 0)
@@ -280,6 +280,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       ESP_LOGW("mhi_ac_ctrl_core", "In read-only mode, overwriting MISO_frame byte %d: 0x%02X with received byte: 0x%02X", byte_cnt, MISO_frame[byte_cnt], MISO_received_byte);
       MISO_frame[byte_cnt] = MISO_received_byte;
     }
+  }
     // Debug output for MISO and MOSI frames
     char miso_frame_str[frameSize * 3 + 1];
     char mosi_frame_str[frameSize * 3 + 1];
@@ -627,5 +628,4 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       }
     }
     return call_counter;
-  }
 }
