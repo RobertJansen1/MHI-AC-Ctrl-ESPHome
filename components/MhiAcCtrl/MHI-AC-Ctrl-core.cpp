@@ -57,7 +57,7 @@ void MHI_AC_Ctrl_Core::init() {
   //MeasureFrequency(m_cbiStatus);
   pinMode(SCK_PIN, INPUT);
   pinMode(MOSI_PIN, INPUT);
-  pinMode(MISO_PIN, OUTPUT);
+  pinMode(MISO_PIN, INPUT);
   MHI_AC_Ctrl_Core::reset_old_values();
 }
 
