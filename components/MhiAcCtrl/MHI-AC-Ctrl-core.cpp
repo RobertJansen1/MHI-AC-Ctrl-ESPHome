@@ -264,7 +264,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       while (!digitalRead(SCK_PIN)) {} // wait for rising edge
       if (digitalRead(MOSI_PIN))
         MOSI_byte += bit_mask;
-      bit_mask = bit_mask << 1;
+      
       if (read_only_mode_) {
         // In read-only mode, lezen we MISO in plaats van te schrijven
         if (digitalRead(MISO_PIN))
