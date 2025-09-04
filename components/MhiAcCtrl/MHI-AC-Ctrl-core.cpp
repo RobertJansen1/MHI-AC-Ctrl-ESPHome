@@ -142,11 +142,12 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static byte MOSI_frame[33];
   //                            sb0   sb1   sb2   db0   db1   db2   db3   db4   db5   db6   db7   db8   db9  db10  db11  db12  db13  db14  chkH  chkL  db15  db16  db17  db18  db19  db20  db21  db22  db23  db24  db25  db26  chk2L
   static byte MISO_frame[] = { 0xA9, 0x00, 0x07, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x22 };
+  if read_only_mode_ {
+    static byte MISO_Fetched_frame[] = { 0xA9, 0x00, 0x07, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x22 };
+  }
 
   static uint call_counter = 0;           // counts how often this loop was called
   static unsigned long lastTroomInternalMillis = 0; // remember when Troom internal has changed
-  char old_miso_frame_str[frameSize * 3 + 1];
-  char old_mosi_frame_str[frameSize * 3 + 1];
   if (frameSize == 33)
     MISO_frame[0] = 0xAA;
 
@@ -281,7 +282,10 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     // overwrite MISO_frame with received data when in read only mode
     if (read_only_mode_) {
       // ESP_LOGW("mhi_ac_ctrl_core", "In read-only mode, overwriting MISO_frame byte %d: 0x%02X with received byte: 0x%02X", byte_cnt, MISO_frame[byte_cnt], MISO_received_byte);
-      MISO_frame[byte_cnt] = MISO_received_byte;
+      if (MISO_Fetched_frame[byte_cnt] != MISO_received_byte)
+        new_datapacket_received = true;
+        MISO_Fetched_frame[byte_cnt] = MISO_received_byte;
+      MISO_Frame[byte_cnt] = MISO_received_byte;
     }
   }
   // Debug output for MISO and MOSI frames
@@ -302,26 +306,22 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   //   if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
   //     return err_msg_invalid_checksum;
   // }
-  if (strcmp(miso_frame_str, old_miso_frame_str) != 0 || strcmp(mosi_frame_str, old_mosi_frame_str) != 0) {
-    // Debug output for MISO and MOSI frames
-    ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
-    ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
-    strcpy(old_miso_frame_str, miso_frame_str);
-    strcpy(old_mosi_frame_str, mosi_frame_str);
-  }
   
   
   if (new_datapacket_received) {
-
+    
     // // return all bytes seperately to home assistant
     // if (m_cbiStatus->get_debug_allbytes()) {
-    //   for (uint8_t i = 0; i < frameSize; i++) {
-    //     m_cbiStatus->cbiStatusFunction(debug_rx + i, MOSI_frame[i]);
-    //     m_cbiStatus->cbiStatusFunction(debug_tx + i, MISO_frame[i]);
-    //   }
-    // }
+      //   for (uint8_t i = 0; i < frameSize; i++) {
+        //     m_cbiStatus->cbiStatusFunction(debug_rx + i, MOSI_frame[i]);
+        //     m_cbiStatus->cbiStatusFunction(debug_tx + i, MISO_frame[i]);
+        //   }
+        // }
+    // Debug output for MISO and MOSI frames
 
-  
+    ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
+    ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
+        
     if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
       byte vanesLRtmp = (MOSI_frame[DB16] & 0x07) + ((MOSI_frame[DB17] & 0x01) << 4);
       if (vanesLRtmp != status_vanesLR_old) { // Vanes Left Right
