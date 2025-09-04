@@ -298,11 +298,11 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
     return err_msg_invalid_checksum;
 
-  if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
-    checksum = calc_checksumFrame33(MOSI_frame);
-    if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
-      return err_msg_invalid_checksum;
-  }
+  // if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
+  //   checksum = calc_checksumFrame33(MOSI_frame);
+  //   if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
+  //     return err_msg_invalid_checksum;
+  // }
 
   if (new_datapacket_received) {
 
