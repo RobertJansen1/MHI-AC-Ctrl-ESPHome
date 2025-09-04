@@ -309,13 +309,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   
   if (new_datapacket_received) {
     
-    // // return all bytes seperately to home assistant
-    // if (m_cbiStatus->get_debug_allbytes()) {
-      //   for (uint8_t i = 0; i < frameSize; i++) {
-        //     m_cbiStatus->cbiStatusFunction(debug_rx + i, MOSI_frame[i]);
-        //     m_cbiStatus->cbiStatusFunction(debug_tx + i, MISO_frame[i]);
-        //   }
-        // }
     // Debug output for MISO and MOSI frames
 
     ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
