@@ -145,6 +145,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
 
   static uint call_counter = 0;           // counts how often this loop was called
   static unsigned long lastTroomInternalMillis = 0; // remember when Troom internal has changed
+  char old_miso_frame_str[frameSize * 3 + 1];
+  char old_mosi_frame_str[frameSize * 3 + 1];
   if (frameSize == 33)
     MISO_frame[0] = 0xAA;
 
@@ -300,19 +302,25 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   //   if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
   //     return err_msg_invalid_checksum;
   // }
-  
-  if (new_datapacket_received) {
+  if (miso_frame_str != old_miso_frame_str || mosi_frame_str[0] != old_mosi_frame_str) {
     // Debug output for MISO and MOSI frames
-    
     ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
     ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
+    old_miso_frame_str = miso_frame_str;
+    old_mosi_frame_str = mosi_frame_str;
+  }
+  
+  
+  if (new_datapacket_received) {
 
     // // return all bytes seperately to home assistant
     // if (m_cbiStatus->get_debug_allbytes()) {
     //   for (uint8_t i = 0; i < frameSize; i++) {
-    //     m_cbiStatus->cbiStatusFunction(debug_byte0 + i, MOSI_frame[i]);
+    //     m_cbiStatus->cbiStatusFunction(debug_rx + i, MOSI_frame[i]);
+    //     m_cbiStatus->cbiStatusFunction(debug_tx + i, MISO_frame[i]);
     //   }
     // }
+
   
     if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
       byte vanesLRtmp = (MOSI_frame[DB16] & 0x07) + ((MOSI_frame[DB17] & 0x01) << 4);
