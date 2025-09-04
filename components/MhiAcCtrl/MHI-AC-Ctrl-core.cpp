@@ -278,7 +278,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     // overwrite MISO_frame with received data when in read only mode
     if (read_only_mode_) {
-      ESP_LOGW("mhi_ac_ctrl_core", "In read-only mode, overwriting MISO_frame byte %d: 0x%02X with received byte: 0x%02X", byte_cnt, MISO_frame[byte_cnt], MISO_received_byte);
+      // ESP_LOGW("mhi_ac_ctrl_core", "In read-only mode, overwriting MISO_frame byte %d: 0x%02X with received byte: 0x%02X", byte_cnt, MISO_frame[byte_cnt], MISO_received_byte);
       MISO_frame[byte_cnt] = MISO_received_byte;
     }
   }
