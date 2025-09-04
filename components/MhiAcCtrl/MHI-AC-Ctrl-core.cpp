@@ -302,12 +302,12 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   //   if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
   //     return err_msg_invalid_checksum;
   // }
-  if (miso_frame_str != old_miso_frame_str || mosi_frame_str[0] != old_mosi_frame_str) {
+  if (miso_frame_str != old_miso_frame_str || mosi_frame_str != old_mosi_frame_str) {
     // Debug output for MISO and MOSI frames
     ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
     ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
-    old_miso_frame_str = miso_frame_str;
-    old_mosi_frame_str = mosi_frame_str;
+    strcpy(old_miso_frame_str, miso_frame_str);
+    strcpy(old_mosi_frame_str, mosi_frame_str);
   }
   
   
