@@ -57,8 +57,11 @@ void MHI_AC_Ctrl_Core::init() {
   //MeasureFrequency(m_cbiStatus);
   pinMode(SCK_PIN, INPUT);
   pinMode(MOSI_PIN, INPUT);
-  pinMode(MISO_PIN, INPUT);
-  MHI_AC_Ctrl_Core::reset_old_values();
+  if (read_only_mode_) {
+    pinMode(MISO_PIN, INPUT);
+  } else {
+    pinMode(MISO_PIN, OUTPUT);
+  }  MHI_AC_Ctrl_Core::reset_old_values();
 }
 
 void MHI_AC_Ctrl_Core::set_power(boolean power) {
@@ -257,15 +260,16 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
           digitalWrite(MISO_PIN, 1);
         else
           digitalWrite(MISO_PIN, 0);
-      } else {
-        // Read MISO data from other device
-        ESP_LOGD("mhi_ac_ctrl_core", "Reading MISO data in read-only mode");
-        if (digitalRead(MISO_PIN))
-          MISO_received_byte += bit_mask;
       }
       while (!digitalRead(SCK_PIN)) {} // wait for rising edge
       if (digitalRead(MOSI_PIN))
         MOSI_byte += bit_mask;
+      bit_mask = bit_mask << 1;
+      if (read_only_mode_) {
+        // In read-only mode, lezen we MISO in plaats van te schrijven
+        if (digitalRead(MISO_PIN))
+          MISO_received_byte += bit_mask;
+      }
       bit_mask = bit_mask << 1;
     }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
