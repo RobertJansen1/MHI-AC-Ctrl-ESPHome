@@ -353,7 +353,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - SCKMillis > 2 ) {
           // SCK stuck@ high error detection, expected when we are at the end of the frame
           sck_pulsing = false;
-          ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+          // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
           if (byte_cnt < 31)
             large_frame_received = true;
           break; // exit the for loop
@@ -386,6 +386,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     sprintf(miso_frame_str + i * 3, "%02X ", MISO_frame[i]);
     sprintf(mosi_frame_str + i * 3, "%02X ", MOSI_frame[i]);
   }
+  ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
+  ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
   checksum = calc_checksum(MOSI_frame);
   if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
   return err_msg_invalid_signature;
@@ -398,8 +400,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       return err_msg_invalid_checksum;
   }
   
-  // ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
-  // ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
   
   if (new_datapacket_received) {
     
@@ -731,8 +731,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int duration = millis() - startMillis;
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
-  // next_run_time = millis() + duration - wait_time ;
-  // ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
+  ESP_LOGD("mhi_ac_ctrl_core", "Loop end at %lu, duration %d ms, waited %d ms, next loop %d, bytes: %d", millis(), duration, wait_time, next_run_time, byte_cnt);
 
   // ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms sck_interval %d", next_run_time, sck_interval);
 
