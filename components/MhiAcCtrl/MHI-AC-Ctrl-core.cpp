@@ -140,6 +140,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static int max_wait_time = 0;
   static int sck_interval = 50;
   static int last_start_time = 0;
+  static int current_start_time = 0;
   static int next_run_after = 0;
   if (max_wait_time > max_time_ms - max_ms_needed)
     max_wait_time = 0;
@@ -305,27 +306,42 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
-  for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
-    //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
-    MOSI_byte = 0;
-    byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
-    byte bit_mask = 1;
-    for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      SCKMillis = millis();
-      while (digitalRead(SCK_PIN)) { // wait for falling edge
-        if (MOSI_byte == 0 && bit_cnt == 0) { // if nothing received after 5ms, abort reading this frame
-          if (millis() - startMillis > max_time_ms - max_ms_needed ) {
-            ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
-            return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-          }
-        }
-        if (millis() - startMillis > max_time_ms)
-          return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-      } 
-      if (wait_time == 0) { // Start reading new frame
-        wait_time = millis() - startMillis;
-      }
 
+  // Wait for falling edge to mark the start of a frame
+
+  bool sck_pulsing = True
+
+  while (digitalRead(SCK_PIN)) { // wait for falling edge
+    if (millis() - startMillis > max_time_ms - max_ms_needed ) {
+      ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+    }
+    
+  }
+  MOSI_byte = 0;
+  byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
+  byte bit_mask = 1;
+  current_start_time = millis();
+  uint8t_t byte_cnt = 0;
+
+  while (sck_pulsing) {
+    bit_mask = 1;
+    for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
+      // SCKMillis = millis();
+      // while (digitalRead(SCK_PIN)) { // wait for falling edge
+      //   if (MOSI_byte == 0 && bit_cnt == 0) { // if nothing received after 5ms, abort reading this frame
+      //     if (millis() - startMillis > max_time_ms - max_ms_needed ) {
+      //       ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      //       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+      //     }
+      //   }
+      //   if (millis() - startMillis > max_time_ms)
+      //     return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+      // } 
+      // if (wait_time == 0) { // Start reading new frame
+      //   wait_time = millis() - startMillis;
+      // }
+  
       if (!read_only_mode_) {
         if ((MISO_frame[byte_cnt] & bit_mask) > 0)
           digitalWrite(MISO_PIN, 1);
@@ -342,21 +358,38 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
           MISO_received_byte += bit_mask;
       }
       bit_mask = bit_mask << 1;
-    }
+      SCKMillis = millis();
+      while (digitalRead(SCK_PIN)) { // wait for falling edge
+        if (millis() - SCKMillis > 1 ) {
+          // SCK stuck@ high error detection, expected when we are at the end of the frame
+          sck_pulsing = false;
+          ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+          break; // exit the for loop
+        }
+        if (millis() - startMillis > max_time_ms)
+          return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+      }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
       new_datapacket_received = true;
       MOSI_frame[byte_cnt] = MOSI_byte;
     }
-    // overwrite MISO_frame with received data when in read only mode
     if (read_only_mode_) {
-      // ESP_LOGW("mhi_ac_ctrl_core", "In read-only mode, overwriting MISO_frame byte %d: 0x%02X with received byte: 0x%02X", byte_cnt, MISO_frame[byte_cnt], MISO_received_byte);
       if (MISO_Fetched_frame[byte_cnt] != MISO_received_byte) {
         new_datapacket_received = true;
         MISO_Fetched_frame[byte_cnt] = MISO_received_byte;
       }
       MISO_frame[byte_cnt] = MISO_received_byte;
     }
+    byte_cnt++;
+    }
   }
+  // for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
+  //   //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
+  //   MOSI_byte = 0;
+  //   byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
+  //   byte bit_mask = 1;
+  //   // overwrite MISO_frame with received data when in read only mode
+  // }
   // Debug output for MISO and MOSI frames
   char miso_frame_str[frameSize * 3 + 1];
   char mosi_frame_str[frameSize * 3 + 1];
@@ -709,8 +742,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int duration = millis() - startMillis;
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
-  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
   next_run_after = millis() + duration - wait_time ;
+  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
   ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms", next_run_after);
 
   return call_counter;
