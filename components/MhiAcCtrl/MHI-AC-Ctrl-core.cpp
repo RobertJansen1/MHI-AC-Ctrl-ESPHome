@@ -136,7 +136,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   long startMillis = millis();             // start time of this loop run
   int min_ms_needed = 10;
   int max_ms_needed = 20;
-  ESP_LOGD('MHI-AC-Ctrl', "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
+  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
   byte MOSI_byte;                         // received MOSI byte
   bool new_datapacket_received = false;   // indicated that a new frame was received
   static byte erropdataCnt = 0;           // number of expected error operating data
@@ -163,7 +163,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
   if (read_only_mode_) {
     int MISOMillis = millis();             // time of last MISO read
-    ESP_LOGD('MHI-AC-Ctrl', "Listening for frame at %lu", MISOMillis);
+    ESP_LOGD("mhi_ac_ctrl_core", "Listening for frame at %lu", MISOMillis);
   }  
   // build the next MISO frame
   // if not in read only mode, update MISO frame with new settings
@@ -262,7 +262,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       while (digitalRead(SCK_PIN)) { // wait for falling edge
         if (MOSI_byte == 0 && bit_cnt == 0) { // if nothing received after 5ms, abort reading this frame
           if (millis() - startMillis > max_time_ms - max_ms_needed ) {
-            ESP_LOGD('MHI-AC-Ctrl', "Not enough time left to read frame,");
+            ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
             return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
           }
         }
@@ -271,7 +271,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       } 
       if (MOSI_byte == 0 && bit_cnt == 0) { // Start reading new frame
         int wait_time = millis() - startMillis;
-        ESP_LOGD('MHI-AC-Ctrl', "Started reading frame after %lu", wait_time);
+        ESP_LOGD("mhi_ac_ctrl_core", "Started reading frame after %lu", wait_time);
       }
 
       if (!read_only_mode_) {
@@ -655,6 +655,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
   }
   int endMILIS = millis() - startMillis
-  ESP_LOGD('MHI-AC-Ctrl', "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms", millis(), endMILIS);
+  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms", millis(), endMILIS);
   return call_counter;
 }
