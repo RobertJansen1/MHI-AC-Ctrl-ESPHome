@@ -309,7 +309,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
 
   // Wait for falling edge to mark the start of a frame
 
-  bool sck_pulsing = True
+  bool sck_pulsing = true;
 
   while (digitalRead(SCK_PIN)) { // wait for falling edge
     if (millis() - startMillis > max_time_ms - max_ms_needed ) {
