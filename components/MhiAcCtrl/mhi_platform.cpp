@@ -63,7 +63,7 @@ void MhiPlatform::loop() {
         this->room_temp_api_active_ = false;
     }
 
-    int ret = mhi_ac_ctrl_core_.loop(100);
+    int ret = mhi_ac_ctrl_core_.loop(50);
     if (ret < 0) {
         ESP_LOGE(TAG, "mhi_ac_ctrl_core,loop error: %i", ret);
     }
