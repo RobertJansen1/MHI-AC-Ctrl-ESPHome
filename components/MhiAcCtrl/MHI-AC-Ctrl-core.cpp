@@ -208,7 +208,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     ESP_LOGD("mhi_ac_ctrl_core", "SCK interval determined: %d ms, first start time %d, last start time %d", sck_interval, first_start_time, last_start_time);
     next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
-  // }
+  }
   ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
 
   if (millis() < next_run_time) {
