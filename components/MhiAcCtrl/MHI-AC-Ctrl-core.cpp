@@ -201,6 +201,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     next_run_after = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
   }
+  ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_after, millis());
+
   if (millis() < next_run_after) {
     ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_after, millis());
     return err_msg_hold_off; // not time yet for next frame
