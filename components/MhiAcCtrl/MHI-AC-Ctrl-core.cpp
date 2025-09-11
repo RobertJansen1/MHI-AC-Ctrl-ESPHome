@@ -732,7 +732,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
-  int duration = millis() - startMillis;
+  duration = millis() - startMillis;
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
   ESP_LOGD("mhi_ac_ctrl_core", "Loop end at %lu, duration %d ms, waited %d ms, next loop %d, bytes: %d", millis(), duration, wait_time, next_run_time, byte_cnt);
