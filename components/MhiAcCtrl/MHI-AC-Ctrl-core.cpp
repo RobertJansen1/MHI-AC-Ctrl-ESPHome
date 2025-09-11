@@ -172,12 +172,13 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       if (!digitalRead(SCK_PIN))
         SCKMillis = millis();
       if (millis() - startMillis > 200 )
+      ESP_LOGD("mhi_ac_ctrl_core", "timeout 1,");
         return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
     }
     
     while (digitalRead(SCK_PIN)) { // wait for falling edge
       if (millis() - startMillis > 200 )
-      ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      ESP_LOGD("mhi_ac_ctrl_core", "Timeout 2,");
       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
     }
     int first_start_time = millis();
@@ -189,7 +190,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     while (digitalRead(SCK_PIN)) { // wait for falling edge
       if (millis() - startMillis > 200 )
-      ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      ESP_LOGD("mhi_ac_ctrl_core", "Timeout 3,");
       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
     }
     int last_start_time = millis();
