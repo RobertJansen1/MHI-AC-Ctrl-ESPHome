@@ -353,7 +353,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - SCKMillis > 2 ) {
           // SCK stuck@ high error detection, expected when we are at the end of the frame
           sck_pulsing = false;
-          // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+          ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
           if (byte_cnt < 31)
             large_frame_received = true;
           break; // exit the for loop
@@ -398,8 +398,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       return err_msg_invalid_checksum;
   }
   
-  ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
-  ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
+  // ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
+  // ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
   
   if (new_datapacket_received) {
     
