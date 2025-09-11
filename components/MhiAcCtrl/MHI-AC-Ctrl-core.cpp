@@ -172,7 +172,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   
   call_counter++;
   int SCKMillis = millis();               // time of last SCK low level
-  if (next_run_time == 0) {
+  if (next_run_time == 0 || sck_interval <25 ) {
     ESP_LOGD("mhi_ac_ctrl_core", "First boot, determining SCK interval");
     while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
       if (!digitalRead(SCK_PIN))
@@ -204,6 +204,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     int last_start_time = millis();
     sck_interval = last_start_time - first_start_time;
+    ESP_LOGD("mhi_ac_ctrl_core", "SCK interval determined: %d ms, first start time %d, last start time %d", sck_interval, first_start_time, last_start_time);
     next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
   }
