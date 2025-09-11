@@ -400,16 +400,16 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     sprintf(mosi_frame_str + i * 3, "%02X ", MOSI_frame[i]);
   }
   checksum = calc_checksum(MOSI_frame);
-  // if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
-  // return err_msg_invalid_signature;
-  // if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
-  // return err_msg_invalid_checksum;
+  if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
+  return err_msg_invalid_signature;
+  if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
+  return err_msg_invalid_checksum;
   
-  // if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
-  //   checksum = calc_checksumFrame33(MOSI_frame);
-  //   if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
-  //     return err_msg_invalid_checksum;
-  // }
+  if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
+    checksum = calc_checksumFrame33(MOSI_frame);
+    if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
+      return err_msg_invalid_checksum;
+  }
   
   ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
   ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
