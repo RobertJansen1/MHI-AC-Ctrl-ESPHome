@@ -324,13 +324,13 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   //     return err_msg_invalid_checksum;
   // }
   
+  ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
+  ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
   
   if (new_datapacket_received) {
     
     // Debug output for MISO and MOSI frames
 
-    ESP_LOGD("mhi_ac_ctrl_core", "MISO: %s", miso_frame_str);
-    ESP_LOGD("mhi_ac_ctrl_core", "MOSI: %s", mosi_frame_str);
         
     if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
       byte vanesLRtmp = (MOSI_frame[DB16] & 0x07) + ((MOSI_frame[DB17] & 0x01) << 4);
