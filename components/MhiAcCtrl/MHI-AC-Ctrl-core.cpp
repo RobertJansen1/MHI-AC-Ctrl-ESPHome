@@ -138,7 +138,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int max_ms_needed = 20;
   int wait_time = 0;
   static int max_wait_time = 0;
-  if (max_wait_time < max_time_ms - max_ms_needed)
+  if (max_wait_time > max_time_ms - max_ms_needed)
     max_wait_time = max_time_ms - max_ms_needed;
   ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
   byte MOSI_byte;                         // received MOSI byte
@@ -273,7 +273,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - startMillis > max_time_ms)
           return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
       } 
-      if (MOSI_byte == 0 && bit_cnt == 0) { // Start reading new frame
+      if (wait_time == 0) { // Start reading new frame
         wait_time = millis() - startMillis;
       }
 
