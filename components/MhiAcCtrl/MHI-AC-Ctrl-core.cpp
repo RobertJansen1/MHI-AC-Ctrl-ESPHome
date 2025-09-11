@@ -310,12 +310,10 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   // Wait for falling edge to mark the start of a frame
 
   bool sck_pulsing = true;
-
-  MOSI_byte = 0;
-  byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
   byte bit_mask = 1;
   uint8_t byte_cnt = 0;
-  
+  byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
+
   while (digitalRead(SCK_PIN)) { // wait for falling edge
     if (millis() - startMillis > max_time_ms - max_ms_needed ) {
       ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
@@ -323,8 +321,10 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }  
   }
   current_start_time = millis();
-
+  
   while (sck_pulsing) {
+    MOSI_byte = 0;
+    MISO_received_byte = 0;  // Add this to capture MISO data from other device
     bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
       // SCKMillis = millis();
@@ -369,6 +369,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - startMillis > max_time_ms)
           return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
       }
+      if (!sck_pulsing)
+        break; // exit the for loop
     }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
       new_datapacket_received = true;
