@@ -263,7 +263,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (MOSI_byte == 0 && bit_cnt == 0) { // if nothing received after 5ms, abort reading this frame
           if (millis() - startMillis > max_time_ms - max_ms_needed ) {
             ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
-            return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+            // return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
           }
         }
         if (millis() - startMillis > max_time_ms)
