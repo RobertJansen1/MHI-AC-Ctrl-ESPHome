@@ -138,6 +138,9 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int max_ms_needed = 20;
   int wait_time = 0;
   static int max_wait_time = 0;
+  static int sck_interval = 50;
+  static int last_start_time = 0;
+  static int next_run_after = 0;
   if (max_wait_time > max_time_ms - max_ms_needed)
     max_wait_time = 0;
   if (max_wait_time > 40)
@@ -155,12 +158,50 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
 
   static uint call_counter = 0;           // counts how often this loop was called
   static unsigned long lastTroomInternalMillis = 0; // remember when Troom internal has changed
-  if (frameSize == 33)
-    MISO_frame[0] = 0xAA;
 
-   
+  
+  if (frameSize == 33)
+  MISO_frame[0] = 0xAA;
+  
+  
   call_counter++;
   int SCKMillis = millis();               // time of last SCK low level
+  if (next_run_after == 0) {
+    ESP_LOGD("mhi_ac_ctrl_core", "First boot, determining SCK interval");
+    while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
+      if (!digitalRead(SCK_PIN))
+        SCKMillis = millis();
+      if (millis() - startMillis > 200 )
+        return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+    }
+    
+    while (digitalRead(SCK_PIN)) { // wait for falling edge
+      if (millis() - startMillis > 200 )
+      ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+    }
+    int first_start_time = millis();
+    while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
+      if (!digitalRead(SCK_PIN))
+        SCKMillis = millis();
+      if (millis() - startMillis > 200 )
+        return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+    }
+    while (digitalRead(SCK_PIN)) { // wait for falling edge
+      if (millis() - startMillis > 200 )
+      ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
+      return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+    }
+    int last_start_time = millis();
+    sck_interval = last_start_time - first_start_time;
+    next_run_after = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
+
+  }
+  if (millis() < next_run_after) {
+    ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_after, millis());
+    return err_msg_hold_off; // not time yet for next frame
+  }
+
   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
     if (!digitalRead(SCK_PIN))
       SCKMillis = millis();
@@ -659,10 +700,12 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
-  int endMILIS = millis() - startMillis;
+  int duration = millis() - startMillis;
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
-  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d", millis(), endMILIS, wait_time);
-  ESP_LOGD("mhi_ac_ctrl_core", "Max wait time %d ms", max_wait_time);
+  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
+  int next_loop_expected_at = millis() + duration - wait_time ;
+  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms", next_loop_expected_at);
+
   return call_counter;
 }
