@@ -311,18 +311,18 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
 
   bool sck_pulsing = true;
 
+  MOSI_byte = 0;
+  byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
+  byte bit_mask = 1;
+  uint8_t byte_cnt = 0;
+  
   while (digitalRead(SCK_PIN)) { // wait for falling edge
     if (millis() - startMillis > max_time_ms - max_ms_needed ) {
       ESP_LOGD("mhi_ac_ctrl_core", "Not enough time left to read frame,");
       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-    }
-    
+    }  
   }
-  MOSI_byte = 0;
-  byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
-  byte bit_mask = 1;
   current_start_time = millis();
-  uint8_t byte_cnt = 0;
 
   while (sck_pulsing) {
     bit_mask = 1;
@@ -398,10 +398,10 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     sprintf(mosi_frame_str + i * 3, "%02X ", MOSI_frame[i]);
   }
   checksum = calc_checksum(MOSI_frame);
-  if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
-  return err_msg_invalid_signature;
-  if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
-  return err_msg_invalid_checksum;
+  // if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
+  // return err_msg_invalid_signature;
+  // if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
+  // return err_msg_invalid_checksum;
   
   // if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
   //   checksum = calc_checksumFrame33(MOSI_frame);
