@@ -369,6 +369,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - startMillis > max_time_ms)
           return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
       }
+    }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
       new_datapacket_received = true;
       MOSI_frame[byte_cnt] = MOSI_byte;
@@ -381,7 +382,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       MISO_frame[byte_cnt] = MISO_received_byte;
     }
     byte_cnt++;
-    }
   }
   // for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
   //   //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
