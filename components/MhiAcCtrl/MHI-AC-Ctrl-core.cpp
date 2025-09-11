@@ -183,7 +183,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       }
     }
     
-    while (digitalRead(SCK_PIN)) { // wait for falling edge
+    while (!digitalRead(SCK_PIN)) { // wait for falling edge
       if (millis() - startMillis > 200 ) {
         ESP_LOGD("mhi_ac_ctrl_core", "Timeout 2,");
         return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
@@ -196,7 +196,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       if (millis() - startMillis > 200 )
         return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
     }
-    while (digitalRead(SCK_PIN)) { // wait for falling edge
+    while (!digitalRead(SCK_PIN)) { // wait for falling edge
       if (millis() - startMillis > 200 ) {
         ESP_LOGD("mhi_ac_ctrl_core", "Timeout 3,");
         return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
