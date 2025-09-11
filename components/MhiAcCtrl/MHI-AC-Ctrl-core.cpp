@@ -142,7 +142,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static int last_start_time = 0;
   static int current_start_time = 0;
   int loop_start_time = millis();
-  static int next_run_after = 0;
+  static int next_run_time = 0;
   if (max_wait_time > max_time_ms - max_ms_needed)
     max_wait_time = 0;
   if (max_wait_time > 40)
@@ -172,7 +172,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   
   call_counter++;
   int SCKMillis = millis();               // time of last SCK low level
-  if (next_run_after == 0) {
+  if (next_run_time == 0) {
     ESP_LOGD("mhi_ac_ctrl_core", "First boot, determining SCK interval");
     while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
       if (!digitalRead(SCK_PIN))
@@ -204,13 +204,13 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     int last_start_time = millis();
     sck_interval = last_start_time - first_start_time;
-    next_run_after = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
+    next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
   }
-  ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_after, millis());
+  ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
 
-  if (millis() < next_run_after) {
-    ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_after, millis());
+  if (millis() < next_run_time) {
+    ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
     return err_msg_hold_off; // not time yet for next frame
   }
 
@@ -373,6 +373,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     byte_cnt++;
   }
+  next_run_time = current_start_time + sck_interval - 10; // next frame start time minus half frame time minus 10ms margin
+
   // Debug output for MISO and MOSI frames
   char miso_frame_str[frameSize * 3 + 1];
   char mosi_frame_str[frameSize * 3 + 1];
@@ -725,11 +727,10 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int duration = millis() - startMillis;
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
-  next_run_after = current_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
-  // next_run_after = millis() + duration - wait_time ;
+  // next_run_time = millis() + duration - wait_time ;
   ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
 
-  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms sck_interval %d", next_run_after, sck_interval);
+  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms sck_interval %d", next_run_time, sck_interval);
 
   return call_counter;
 }
