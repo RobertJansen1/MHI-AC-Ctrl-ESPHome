@@ -654,7 +654,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
-  int endMILIS = millis() - startMillis
+  int endMILIS = millis() - startMillis;
   ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms", millis(), endMILIS);
   return call_counter;
 }
