@@ -139,7 +139,9 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   int wait_time = 0;
   static int max_wait_time = 0;
   if (max_wait_time > max_time_ms - max_ms_needed)
-    max_wait_time = max_time_ms - max_ms_needed;
+    max_wait_time = 0;
+  if (max_wait_time > 40)
+    max_wait_time = 0;
   ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
   byte MOSI_byte;                         // received MOSI byte
   bool new_datapacket_received = false;   // indicated that a new frame was received
