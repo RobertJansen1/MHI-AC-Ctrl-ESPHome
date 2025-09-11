@@ -333,14 +333,14 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
   
       if (!read_only_mode_) {
-        delayMicroseconds(1);
+        delayMicroseconds(10);
         if ((MISO_frame[byte_cnt] & bit_mask) > 0)
           digitalWrite(MISO_PIN, 1);
         else
           digitalWrite(MISO_PIN, 0);
       }
       while (!digitalRead(SCK_PIN)) {} // wait for rising edge
-      delayMicroseconds(1);
+      delayMicroseconds(10);
       if (digitalRead(MOSI_PIN))
         MOSI_byte += bit_mask;
       
