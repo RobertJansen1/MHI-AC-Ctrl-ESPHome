@@ -379,6 +379,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     }
     byte_cnt++;
   }
+  interrupts();
   next_run_time = current_start_time + sck_interval - 10; // next frame start time minus half frame time minus 10ms margin
 
   // Debug output for MISO and MOSI frames
