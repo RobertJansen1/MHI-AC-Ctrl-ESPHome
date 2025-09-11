@@ -710,8 +710,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
   ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
-  int next_loop_expected_at = millis() + duration - wait_time ;
-  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms", next_loop_expected_at);
+  next_run_after = millis() + duration - wait_time ;
+  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms", next_run_after);
 
   return call_counter;
 }
