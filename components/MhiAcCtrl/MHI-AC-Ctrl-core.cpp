@@ -147,7 +147,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     max_wait_time = 0;
   if (max_wait_time > 40)
     max_wait_time = 0;
-  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
+  // ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
   byte MOSI_byte;                         // received MOSI byte
   bool new_datapacket_received = false;   // indicated that a new frame was received
   static byte erropdataCnt = 0;           // number of expected error operating data
@@ -211,7 +211,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
 
   if (millis() < next_run_time) {
-    ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
+    // ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
     return err_msg_hold_off; // not time yet for next frame
   }
 
