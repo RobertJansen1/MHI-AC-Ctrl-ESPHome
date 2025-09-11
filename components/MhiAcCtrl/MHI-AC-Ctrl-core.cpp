@@ -350,7 +350,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
       bit_mask = bit_mask << 1;
       SCKMillis = millis();
       while (digitalRead(SCK_PIN)) { // wait for falling edge
-        if (millis() - SCKMillis > 1 ) {
+        if (millis() - SCKMillis > 2 ) {
           // SCK stuck@ high error detection, expected when we are at the end of the frame
           sck_pulsing = false;
           ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
