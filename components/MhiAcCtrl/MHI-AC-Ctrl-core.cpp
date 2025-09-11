@@ -274,7 +274,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
           return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
       } 
       if (MOSI_byte == 0 && bit_cnt == 0) { // Start reading new frame
-        int wait_time = millis() - startMillis;
+        wait_time = millis() - startMillis;
       }
 
       if (!read_only_mode_) {
