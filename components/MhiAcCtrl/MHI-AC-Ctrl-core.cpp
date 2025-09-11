@@ -322,7 +322,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
   byte bit_mask = 1;
   current_start_time = millis();
-  uint8t_t byte_cnt = 0;
+  uint8_t byte_cnt = 0;
 
   while (sck_pulsing) {
     bit_mask = 1;
