@@ -325,7 +325,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
   current_start_time = millis();
   wait_time = current_start_time - loop_start_time;
-  
+  noInterrupts();
   while (sck_pulsing) {
     MOSI_byte = 0;
     MISO_received_byte = 0;  // Add this to capture MISO data from other device
@@ -333,14 +333,14 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
   
       if (!read_only_mode_) {
-        delayMicroseconds(5); // give some time for the other device to prepare for reading MISO
+        // delayMicroseconds(5); // give some time for the other device to prepare for reading MISO
         if ((MISO_frame[byte_cnt] & bit_mask) > 0)
           digitalWrite(MISO_PIN, 1);
         else
           digitalWrite(MISO_PIN, 0);
       }
       while (!digitalRead(SCK_PIN)) {} // wait for rising edge
-      delayMicroseconds(5); // give some time for the other device to prepare for reading MISO
+      // delayMicroseconds(5); // give some time for the other device to prepare for reading MISO
       if (digitalRead(MOSI_PIN))
         MOSI_byte += bit_mask;
       
