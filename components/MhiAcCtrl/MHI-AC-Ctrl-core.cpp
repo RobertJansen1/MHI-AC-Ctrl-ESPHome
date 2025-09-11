@@ -164,6 +164,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   byte bit_mask = 1;
   uint8_t byte_cnt = 0;
   byte MISO_received_byte = 0;  // Add this to capture MISO data from other device
+  bool large_frame_received = false;
 
   
   if (frameSize == 33)
@@ -353,6 +354,8 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
           // SCK stuck@ high error detection, expected when we are at the end of the frame
           sck_pulsing = false;
           // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+          if (byte_cnt < 31)
+            large_frame_received = true;
           break; // exit the for loop
         }
         if (millis() - startMillis > max_time_ms)
@@ -389,7 +392,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   if ((MOSI_frame[CBH] << 8 | MOSI_frame[CBL]) != checksum)
   return err_msg_invalid_checksum;
   
-  if (frameSize == 33) { // Only for framesize 33 (WF-RAC)
+  if (frameSize == 33 && large_frame_received) { // Only for framesize 33 (WF-RAC)
     checksum = calc_checksumFrame33(MOSI_frame);
     if ( MOSI_frame[CBL2] != lowByte(checksum ) ) 
       return err_msg_invalid_checksum;
