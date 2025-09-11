@@ -135,7 +135,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static byte opdataNo = 0;               //
   long startMillis = millis();             // start time of this loop run
   int min_ms_needed = 10;
-  int max_ms_needed = 20;
+  int max_ms_needed = frameSize /2;
   int wait_time = 0;
   static int max_wait_time = 0;
   static int sck_interval = 50;
