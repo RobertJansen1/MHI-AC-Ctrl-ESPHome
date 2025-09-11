@@ -172,40 +172,41 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   
   call_counter++;
   int SCKMillis = millis();               // time of last SCK low level
-  // if (next_run_time == 0 || sck_interval <25 ) {
-  //   ESP_LOGD("mhi_ac_ctrl_core", "First boot, determining SCK interval");
-  //   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
-  //     if (!digitalRead(SCK_PIN))
-  //       SCKMillis = millis();
-  //     if (millis() - startMillis > 200 ) {
-  //       ESP_LOGD("mhi_ac_ctrl_core", "timeout 1,");
-  //       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
-  //     }
-  //   }
+  if (next_run_time == 0 || sck_interval <25 ) {
+    ESP_LOGD("mhi_ac_ctrl_core", "First boot, determining SCK interval");
+    while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
+      if (!digitalRead(SCK_PIN))
+        SCKMillis = millis();
+      if (millis() - startMillis > 200 ) {
+        ESP_LOGD("mhi_ac_ctrl_core", "timeout 1,");
+        return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+      }
+    }
     
-  //   while (!digitalRead(SCK_PIN)) { // wait for falling edge
-  //     if (millis() - startMillis > 200 ) {
-  //       ESP_LOGD("mhi_ac_ctrl_core", "Timeout 2,");
-  //       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-  //     }
-  //   }
-  //   int first_start_time = millis();
-  //   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
-  //     if (!digitalRead(SCK_PIN))
-  //       SCKMillis = millis();
-  //     if (millis() - startMillis > 200 )
-  //       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
-  //   }
-  //   while (!digitalRead(SCK_PIN)) { // wait for falling edge
-  //     if (millis() - startMillis > 200 ) {
-  //       ESP_LOGD("mhi_ac_ctrl_core", "Timeout 3,");
-  //       return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-  //     }
-  //   }
-  //   int last_start_time = millis();
-  //   sck_interval = last_start_time - first_start_time;
-  //   ESP_LOGD("mhi_ac_ctrl_core", "SCK interval determined: %d ms, first start time %d, last start time %d", sck_interval, first_start_time, last_start_time);
-  //   next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
+    while (!digitalRead(SCK_PIN)) { // wait for falling edge
+      if (millis() - startMillis > 200 ) {
+        ESP_LOGD("mhi_ac_ctrl_core", "Timeout 2,");
+        return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+      }
+    }
+    int first_start_time = millis();
+    SCKMillis = millis();
+    while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
+      if (!digitalRead(SCK_PIN))
+        SCKMillis = millis();
+      if (millis() - startMillis > 200 )
+        return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+    }
+    while (!digitalRead(SCK_PIN)) { // wait for falling edge
+      if (millis() - startMillis > 200 ) {
+        ESP_LOGD("mhi_ac_ctrl_core", "Timeout 3,");
+        return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+      }
+    }
+    int last_start_time = millis();
+    sck_interval = last_start_time - first_start_time;
+    ESP_LOGD("mhi_ac_ctrl_core", "SCK interval determined: %d ms, first start time %d, last start time %d", sck_interval, first_start_time, last_start_time);
+    next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
   // }
   ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
