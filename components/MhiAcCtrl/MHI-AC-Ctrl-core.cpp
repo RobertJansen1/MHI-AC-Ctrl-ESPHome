@@ -209,7 +209,6 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     next_run_time = last_start_time + sck_interval - (frameSize /2) - 10; // next frame start time minus half frame time minus 10ms margin
 
   }
-  ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
 
   if (millis() < next_run_time) {
     ESP_LOGD("mhi_ac_ctrl_core", "Waiting until next frame start at %d, now %d", next_run_time, millis());
@@ -224,7 +223,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
   if (read_only_mode_) {
     int MISOMillis = millis();             // time of last MISO read
-    ESP_LOGD("mhi_ac_ctrl_core", "Listening for frame at %lu", MISOMillis);
+    // ESP_LOGD("mhi_ac_ctrl_core", "Listening for frame at %lu", MISOMillis);
   }  
   // build the next MISO frame
   // if not in read only mode, update MISO frame with new settings
@@ -353,7 +352,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         if (millis() - SCKMillis > 2 ) {
           // SCK stuck@ high error detection, expected when we are at the end of the frame
           sck_pulsing = false;
-          ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+          // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
           break; // exit the for loop
         }
         if (millis() - startMillis > max_time_ms)
@@ -730,9 +729,9 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   if (wait_time > max_wait_time)
     max_wait_time = wait_time;
   // next_run_time = millis() + duration - wait_time ;
-  ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
+  // ESP_LOGD("mhi_ac_ctrl_core", "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms, waited %d ms", millis(), duration, wait_time);
 
-  ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms sck_interval %d", next_run_time, sck_interval);
+  // ESP_LOGD("mhi_ac_ctrl_core", "next loop expected at %d ms sck_interval %d", next_run_time, sck_interval);
 
   return call_counter;
 }
