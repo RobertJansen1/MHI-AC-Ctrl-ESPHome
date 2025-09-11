@@ -134,6 +134,9 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   const byte opdataCnt = sizeof(opdata) / sizeof(byte) / 2;
   static byte opdataNo = 0;               //
   long startMillis = millis();             // start time of this loop run
+  int min_ms_needed = 10;
+  int max_ms_needed = 20;
+  ESP_LOGD('MHI-AC-Ctrl', "MHI_AC_Ctrl_Core::loop start at %lu", startMillis);
   byte MOSI_byte;                         // received MOSI byte
   bool new_datapacket_received = false;   // indicated that a new frame was received
   static byte erropdataCnt = 0;           // number of expected error operating data
@@ -155,9 +158,13 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
     if (!digitalRead(SCK_PIN))
       SCKMillis = millis();
-    if (millis() - startMillis > max_time_ms)
+    if (millis() - startMillis > max_time_ms - max_ms_needed )
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
   }
+  if (read_only_mode_) {
+    int MISOMillis = millis();             // time of last MISO read
+    ESP_LOGD('MHI-AC-Ctrl', "Listening for frame at %lu", MISOMillis);
+  }  
   // build the next MISO frame
   // if not in read only mode, update MISO frame with new settings
   // else don't change MISO frame, just listen to MOSI
@@ -253,9 +260,20 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
       SCKMillis = millis();
       while (digitalRead(SCK_PIN)) { // wait for falling edge
+        if (MOSI_byte == 0 && bit_cnt == 0) { // if nothing received after 5ms, abort reading this frame
+          if (millis() - startMillis > max_time_ms - max_ms_needed ) {
+            ESP_LOGD('MHI-AC-Ctrl', "Not enough time left to read frame,");
+            return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+          }
+        }
         if (millis() - startMillis > max_time_ms)
           return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
       } 
+      if (MOSI_byte == 0 && bit_cnt == 0) { // Start reading new frame
+        int wait_time = millis() - startMillis;
+        ESP_LOGD('MHI-AC-Ctrl', "Started reading frame after %lu", wait_time);
+      }
+
       if (!read_only_mode_) {
         if ((MISO_frame[byte_cnt] & bit_mask) > 0)
           digitalWrite(MISO_PIN, 1);
@@ -636,5 +654,7 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
         Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
+  int endMILIS = millis() - startMillis
+  ESP_LOGD('MHI-AC-Ctrl', "MHI_AC_Ctrl_Core::loop end at %lu, duration %d ms", millis(), endMILIS);
   return call_counter;
 }
