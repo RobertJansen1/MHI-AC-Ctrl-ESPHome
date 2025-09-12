@@ -3,6 +3,8 @@
 
 #include "MHI-AC-Ctrl-core.h"
 #include "esphome/core/log.h"
+#include <SPI.h>
+SPIClass spi(HSPI); // Gebruik een van de beschikbare SPI-bussen, bv. HSPI
 
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
@@ -55,13 +57,16 @@ void MHI_AC_Ctrl_Core::reset_old_values() {  // used e.g. when MQTT connection t
 
 void MHI_AC_Ctrl_Core::init() {
   //MeasureFrequency(m_cbiStatus);
-  pinMode(SCK_PIN, INPUT);
-  pinMode(MOSI_PIN, INPUT);
-  if (read_only_mode_) {
-    pinMode(MISO_PIN, INPUT);
-  } else {
-    pinMode(MISO_PIN, OUTPUT);
-  }  MHI_AC_Ctrl_Core::reset_old_values();
+  // pinMode(SCK_PIN, INPUT);
+  // pinMode(MOSI_PIN, INPUT);
+  // if (read_only_mode_) {
+  //   pinMode(MISO_PIN, INPUT);
+  // } else {
+  //   pinMode(MISO_PIN, OUTPUT);
+  // }  
+  spi.begin(SCK_PIN, MISO_PIN, MOSI_PIN, -1); // SCK, MISO, MOSI, SS
+  spi.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0)); // Start met lage snelheid (100kHz), SPI Mode 0
+  MHI_AC_Ctrl_Core::reset_old_values();
 }
 
 void MHI_AC_Ctrl_Core::set_power(boolean power) {
@@ -325,59 +330,61 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   }
   current_start_time = millis();
   wait_time = current_start_time - loop_start_time;
-  while (sck_pulsing) {
-    MOSI_byte = 0;
-    MISO_received_byte = 0;  // Add this to capture MISO data from other device
-    bit_mask = 1;
-    for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
+  // while (sck_pulsing) {
+  //   MOSI_byte = 0;
+  //   MISO_received_byte = 0;  // Add this to capture MISO data from other device
+  //   bit_mask = 1;
+  //   for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
   
-      if (!read_only_mode_) {
-        asm("nop");
-        if ((MISO_frame[byte_cnt] & bit_mask) > 0)
-          digitalWrite(MISO_PIN, 1);
-        else
-          digitalWrite(MISO_PIN, 0);
-      }
-      while (!digitalRead(SCK_PIN)) {} // wait for rising edge
-      asm("nop");
-      if (digitalRead(MOSI_PIN))
-        MOSI_byte += bit_mask;
+  //     if (!read_only_mode_) {
+  //       asm("nop");
+  //       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
+  //         digitalWrite(MISO_PIN, 1);
+  //       else
+  //         digitalWrite(MISO_PIN, 0);
+  //     }
+  //     while (!digitalRead(SCK_PIN)) {} // wait for rising edge
+  //     asm("nop");
+  //     if (digitalRead(MOSI_PIN))
+  //       MOSI_byte += bit_mask;
       
-      if (read_only_mode_) {
-        // In read-only mode, lezen we MISO in plaats van te schrijven
-        if (digitalRead(MISO_PIN))
-          MISO_received_byte += bit_mask;
-      }
-      bit_mask = bit_mask << 1;
-      SCKMillis = millis();
-      while (digitalRead(SCK_PIN)) { // wait for falling edge
-        if (millis() - SCKMillis > 2 ) {
-          // SCK stuck@ high error detection, expected when we are at the end of the frame
-          sck_pulsing = false;
-          // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
-          if (byte_cnt < 31)
-            large_frame_received = true;
-          break; // exit the for loop
-        }
-        if (millis() - startMillis > max_time_ms)
-          return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
-      }
-      if (!sck_pulsing)
-        break; // exit the for loop
-    }
-    if (MOSI_frame[byte_cnt] != MOSI_byte) {
-      new_datapacket_received = true;
-      MOSI_frame[byte_cnt] = MOSI_byte;
-    }
-    if (read_only_mode_) {
-      if (MISO_Fetched_frame[byte_cnt] != MISO_received_byte) {
-        new_datapacket_received = true;
-        MISO_Fetched_frame[byte_cnt] = MISO_received_byte;
-      }
-      MISO_frame[byte_cnt] = MISO_received_byte;
-    }
-    byte_cnt++;
-  }
+  //     if (read_only_mode_) {
+  //       // In read-only mode, lezen we MISO in plaats van te schrijven
+  //       if (digitalRead(MISO_PIN))
+  //         MISO_received_byte += bit_mask;
+  //     }
+  //     bit_mask = bit_mask << 1;
+  //     SCKMillis = millis();
+  //     while (digitalRead(SCK_PIN)) { // wait for falling edge
+  //       if (millis() - SCKMillis > 2 ) {
+  //         // SCK stuck@ high error detection, expected when we are at the end of the frame
+  //         sck_pulsing = false;
+  //         // ESP_LOGD("mhi_ac_ctrl_core", "End of frame detected at byte %d", byte_cnt);
+  //         if (byte_cnt < 31)
+  //           large_frame_received = true;
+  //         break; // exit the for loop
+  //       }
+  //       if (millis() - startMillis > max_time_ms)
+  //         return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
+  //     }
+  //     if (!sck_pulsing)
+  //       break; // exit the for loop
+  //   }
+  //   if (MOSI_frame[byte_cnt] != MOSI_byte) {
+  //     new_datapacket_received = true;
+  //     MOSI_frame[byte_cnt] = MOSI_byte;
+  //   }
+  //   if (read_only_mode_) {
+  //     if (MISO_Fetched_frame[byte_cnt] != MISO_received_byte) {
+  //       new_datapacket_received = true;
+  //       MISO_Fetched_frame[byte_cnt] = MISO_received_byte;
+  //     }
+  //     MISO_frame[byte_cnt] = MISO_received_byte;
+  //   }
+  //   byte_cnt++;
+  // }
+  spi.transferBytes(MISO_frame, MOSI_frame, frameSize);
+  new_datapacket_received = true; 
   next_run_time = current_start_time + sck_interval - 10; // next frame start time minus half frame time minus 10ms margin
 
   // Debug output for MISO and MOSI frames
