@@ -41,6 +41,7 @@ CONFIG_SCHEMA = cv.Schema({
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
+    cg.add_library("SPI", None)
     cg.add(var.set_frame_size(config[CONF_FRAME_SIZE]))
     cg.add(var.set_room_temp_api_timeout(config[CONF_ROOM_TEMP_TIMEOUT]))
     if CONF_EXTERNAL_TEMPERATURE_SENSOR in config:
