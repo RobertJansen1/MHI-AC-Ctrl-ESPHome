@@ -14,14 +14,14 @@ static const char* TAG = "mhi.platform";
 void MhiPlatform::setup() {
     // Set the external pin variables from ESPHome GPIO pins
     if (this->sck_pin_ != nullptr) {
-        SCK_PIN = this->sck_pin_->get_pin();
+        SCK_PIN = this->sck_pin_->pin_;
     }
     if (this->mosi_pin_ != nullptr) {
-        MOSI_PIN = this->mosi_pin_->get_pin();
+        MOSI_PIN = this->mosi_pin_->pin_;
     }
     if (this->miso_pin_ != nullptr) {
-        MISO_PIN = this->miso_pin_->get_pin();
-    }
+        MISO_PIN = this->miso_pin_->pin_;
+   }
 
     this->mhi_ac_ctrl_core_.MHIAcCtrlStatus(this);
     this->mhi_ac_ctrl_core_.init(); // initialize MHI AC Ctrl core (uses external pin variables)
