@@ -1,5 +1,10 @@
 #include "mhi_platform.h"
 
+// Define the external pin variables (values set from ESPHome configuration)
+int SCK_PIN;
+int MOSI_PIN;
+int MISO_PIN;
+
 namespace esphome {
 namespace mhi {
 
@@ -7,8 +12,19 @@ static const char* TAG = "mhi.platform";
 
 
 void MhiPlatform::setup() {
+    // Set the external pin variables from ESPHome GPIO pins
+    if (this->sck_pin_ != nullptr) {
+        SCK_PIN = this->sck_pin_->get_pin();
+    }
+    if (this->mosi_pin_ != nullptr) {
+        MOSI_PIN = this->mosi_pin_->get_pin();
+    }
+    if (this->miso_pin_ != nullptr) {
+        MISO_PIN = this->miso_pin_->get_pin();
+    }
+
     this->mhi_ac_ctrl_core_.MHIAcCtrlStatus(this);
-    this->mhi_ac_ctrl_core_.init(this->sck_pin_, this->mosi_pin_, this->miso_pin_); // initialize MHI AC Ctrl core
+    this->mhi_ac_ctrl_core_.init(); // initialize MHI AC Ctrl core (uses external pin variables)
     this->mhi_ac_ctrl_core_.set_frame_size(this->frame_size_); // set framesize. Only 20 (legacy) or 33 (includes 3D auto and vertical vanes) possible
 
     if (this->external_temperature_sensor_ != nullptr) {
@@ -57,6 +73,9 @@ void MhiPlatform::dump_config() {
         ESP_LOGCONFIG(TAG, "  external_temperature_sensor enabled!");
     }
 
+    ESP_LOGCONFIG(TAG, "  SCK_PIN: %d", SCK_PIN);
+    ESP_LOGCONFIG(TAG, "  MOSI_PIN: %d", MOSI_PIN);
+    ESP_LOGCONFIG(TAG, "  MISO_PIN: %d", MISO_PIN);
     ESP_LOGCONFIG(TAG, "  frame_size: %d", this->frame_size_);
     ESP_LOGCONFIG(TAG, "  room_temp_api_timeout: %d", this->room_temp_api_timeout_);
     ESP_LOGCONFIG(TAG, "  listeners count: %d", this->listeners_.size());
