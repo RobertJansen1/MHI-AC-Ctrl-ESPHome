@@ -12,16 +12,10 @@ static const char* TAG = "mhi.platform";
 
 
 void MhiPlatform::setup() {
-    // Set the external pin variables from ESPHome GPIO pins
-    if (this->sck_pin_ != nullptr) {
-        SCK_PIN = this->sck_pin_->get_pin();
-    }
-    if (this->mosi_pin_ != nullptr) {
-        MOSI_PIN = this->mosi_pin_->get_pin();
-    }
-    if (this->miso_pin_ != nullptr) {
-        MISO_PIN = this->miso_pin_->get_pin();
-    }
+    // Extract pin numbers from ESPHome GPIO objects and set external variables
+    SCK_PIN = this->get_pin_number(this->sck_pin_);
+    MOSI_PIN = this->get_pin_number(this->mosi_pin_);
+    MISO_PIN = this->get_pin_number(this->miso_pin_);
 
     this->mhi_ac_ctrl_core_.MHIAcCtrlStatus(this);
     this->mhi_ac_ctrl_core_.init(); // initialize MHI AC Ctrl core (uses external pin variables)
@@ -169,6 +163,15 @@ void MhiPlatform::set_3Dauto(bool value) {
 
 void MhiPlatform::add_listener(MhiStatusListener* listener) {
     this->listeners_.push_back(listener);
+}
+
+int MhiPlatform::get_pin_number(GPIOPin* pin) {
+    if (pin == nullptr) {
+        return -1; // Invalid pin
+    }
+    
+    // Use ESPHome's standard method to get pin number
+    return pin->get_pin();
 }
 
 } //namespace mhi

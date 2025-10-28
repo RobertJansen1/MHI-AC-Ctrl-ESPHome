@@ -44,6 +44,7 @@ public:
 
 private:
     void transfer_room_temperature(float value);
+    int get_pin_number(GPIOPin* pin);
     float last_room_temperature_ = NAN;
 
     int frame_size_;
