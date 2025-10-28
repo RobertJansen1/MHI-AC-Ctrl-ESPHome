@@ -21,6 +21,8 @@ public:
     void set_sck_pin(GPIOPin *sck_pin) { sck_pin_ = sck_pin; }
     void set_mosi_pin(GPIOPin *mosi_pin) { mosi_pin_ = mosi_pin; }
     void set_miso_pin(GPIOPin *miso_pin) { miso_pin_ = miso_pin; }
+    
+    void set_pin_numbers(int sck, int mosi, int miso);
 
     void setup() override;
     void set_frame_size(int framesize);
@@ -44,7 +46,6 @@ public:
 
 private:
     void transfer_room_temperature(float value);
-    int get_pin_number(GPIOPin* pin);
     float last_room_temperature_ = NAN;
 
     int frame_size_;

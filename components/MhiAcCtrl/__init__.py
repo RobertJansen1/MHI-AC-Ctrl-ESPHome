@@ -55,6 +55,9 @@ async def to_code(config):
     cg.add(var.set_sck_pin(sck))
     cg.add(var.set_mosi_pin(mosi))
     cg.add(var.set_miso_pin(miso))
+    
+    # Set pin numbers for external variables (ESPHome validates these during gpio_pin_expression)
+    cg.add(var.set_pin_numbers(config[CONF_SCK_PIN], config[CONF_MOSI_PIN], config[CONF_MISO_PIN]))
 
 @automation.register_action(
     "climate.mhi.set_vertical_vanes",
