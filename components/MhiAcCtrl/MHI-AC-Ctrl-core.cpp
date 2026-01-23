@@ -88,8 +88,6 @@ void MHI_AC_Ctrl_Core::init() {
   #ifdef USE_ESP32_OPTIMIZATIONS
     // ESP32 needs brief delay after pin configuration
     delayMicroseconds(100);
-    // Set CPU to max frequency for better timing
-    setCpuFrequencyMhz(240);
   #endif
   MHI_AC_Ctrl_Core::reset_old_values();
 }
@@ -275,35 +273,23 @@ static byte MOSI_frame[33];
     MOSI_byte = 0;
     byte bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      // Wait for SCK to go HIGH (if it's low)
-      while (!FAST_GPIO_READ(SCK_PIN)) {
-        if (millis() - startMillis > max_time_ms) {
-          return err_msg_timeout_SCK_high;
-        }
-      }
-      
-      // Wait for falling edge (SCK goes LOW)
+      // Wait for falling edge (SCK high -> low)
       while (FAST_GPIO_READ(SCK_PIN)) {
         if (millis() - startMillis > max_time_ms) {
           return err_msg_timeout_SCK_high;
         }
       }
       
-      // Write MISO bit immediately after falling edge detected
+      // Write MISO bit immediately on falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
         FAST_GPIO_WRITE_HIGH(MISO_PIN);
       else
         FAST_GPIO_WRITE_LOW(MISO_PIN);
       
-      // Wait for rising edge to sample MOSI
+      // Wait for rising edge (SCK low -> high)
       while (!FAST_GPIO_READ(SCK_PIN)) {}
       
-      // Small delay to ensure stable read on ESP32
-      #ifdef USE_ESP32_OPTIMIZATIONS
-        asm volatile("nop"); // Single cycle delay
-      #endif
-      
-      // Sample MOSI on rising edge
+      // Sample MOSI right after rising edge
       if (FAST_GPIO_READ(MOSI_PIN))
         MOSI_byte += bit_mask;
       
