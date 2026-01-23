@@ -296,13 +296,16 @@ static byte MOSI_frame[33];
     //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
     MOSI_byte = 0;
     byte bit_mask = 1;
+    
+    // Disable interrupts only during the byte transfer for timing stability
+    #ifdef USE_ESP32_OPTIMIZATIONS
+      portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+      portENTER_CRITICAL(&mux);
+    #endif
+    
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
       // Wait for falling edge (SCK high -> low)
-      while (FAST_GPIO_READ(SCK_PIN)) {
-        if (millis() - startMillis > max_time_ms) {
-          return err_msg_timeout_SCK_high;
-        }
-      }
+      while (FAST_GPIO_READ(SCK_PIN)) {}
       
       // Write MISO bit immediately on falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
@@ -318,6 +321,16 @@ static byte MOSI_frame[33];
         MOSI_byte += bit_mask;
       
       bit_mask = bit_mask << 1;
+    }
+    
+    // Re-enable interrupts after byte transfer
+    #ifdef USE_ESP32_OPTIMIZATIONS
+      portEXIT_CRITICAL(&mux);
+    #endif
+    
+    // Check for timeout between bytes (outside critical section)
+    if (millis() - startMillis > max_time_ms) {
+      return err_msg_timeout_SCK_high;
     }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
       new_datapacket_received = true;
