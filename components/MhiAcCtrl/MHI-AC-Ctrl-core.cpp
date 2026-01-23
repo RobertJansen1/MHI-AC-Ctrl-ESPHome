@@ -307,6 +307,11 @@ static byte MOSI_frame[33];
       // Wait for falling edge (SCK high -> low)
       while (FAST_GPIO_READ(SCK_PIN)) {}
       
+      // Small delay to let SCK settle (ESP32 specific)
+      #ifdef USE_ESP32_OPTIMIZATIONS
+        __asm__ __volatile__("nop\nnop\n");
+      #endif
+      
       // Write MISO bit immediately on falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
         FAST_GPIO_WRITE_HIGH(MISO_PIN);
@@ -315,6 +320,11 @@ static byte MOSI_frame[33];
       
       // Wait for rising edge (SCK low -> high)
       while (!FAST_GPIO_READ(SCK_PIN)) {}
+      
+      // Small delay for signal stability before sampling
+      #ifdef USE_ESP32_OPTIMIZATIONS
+        __asm__ __volatile__("nop\nnop\n");
+      #endif
       
       // Sample MOSI right after rising edge
       if (FAST_GPIO_READ(MOSI_PIN))
