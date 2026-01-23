@@ -12,6 +12,7 @@
   #define USE_ESP32_OPTIMIZATIONS
   #include "hal/gpio_hal.h"
   #include "driver/gpio.h"
+  #include "esp_wifi.h"
   
   // Use HAL functions for reliable GPIO access on all ESP32 variants
   inline bool fastDigitalRead(uint8_t pin) {
@@ -119,6 +120,15 @@ void MHI_AC_Ctrl_Core::init() {
     
     // Set drive strength to maximum for MISO output for better signal quality
     gpio_set_drive_capability((gpio_num_t)MISO_PIN, GPIO_DRIVE_CAP_3);
+    
+    // Disable WiFi/BT interrupts on core 0 to reduce timing jitter
+    // This helps when web server or other network activity causes errors
+    #if CONFIG_FREERTOS_UNICORE
+      // Single core - can't avoid WiFi interrupts
+    #else
+      // Dual core - try to keep network activity on other core
+      esp_wifi_set_ps(WIFI_PS_NONE); // Disable WiFi power save for better timing
+    #endif
     
     // Brief delay after pin configuration
     delayMicroseconds(100);
