@@ -10,6 +10,8 @@
     defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
   
   #define USE_ESP32_OPTIMIZATIONS
+  #include "soc/gpio_struct.h"
+  #include "driver/gpio.h"
   
   // Use inline GPIO reads for speed on ESP32
   // Keep digitalWrite for writes as it handles pin mapping correctly
