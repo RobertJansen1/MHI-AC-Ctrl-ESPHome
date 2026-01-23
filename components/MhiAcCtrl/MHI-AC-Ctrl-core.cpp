@@ -212,11 +212,12 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   call_counter++;
   
   // Frame timing synchronization: frames arrive approximately every 20ms
-  // If we're called too soon after last frame, wait for next frame start
+  // If we're called too soon after last frame, return early to avoid mid-frame entry
   unsigned long timeSinceLastFrame = millis() - lastFrameTime;
-  if (lastFrameTime > 0 && timeSinceLastFrame < 15) {
-    // Too soon - wait until we're closer to next frame (with margin)
-    delay(15 - timeSinceLastFrame);
+  if (lastFrameTime > 0 && timeSinceLastFrame < 18) {
+    // Too soon - return and let caller try again later
+    // This prevents blocking and ESPHome warnings
+    return 0;
   }
   
   int SCKMillis = millis();               // time of last SCK low level
