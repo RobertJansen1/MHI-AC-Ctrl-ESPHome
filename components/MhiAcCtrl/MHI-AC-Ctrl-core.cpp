@@ -11,9 +11,13 @@
   
   #define USE_ESP32_OPTIMIZATIONS
   
-  // Use Arduino's optimized GPIO functions for ESP32
-  // These are already optimized in the ESP32 Arduino core
-  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  // Use inline GPIO reads for speed on ESP32
+  // Keep digitalWrite for writes as it handles pin mapping correctly
+  inline bool fastDigitalRead(uint8_t pin) {
+    return (GPIO.in >> pin) & 0x1;
+  }
+  
+  #define FAST_GPIO_READ(pin) fastDigitalRead(pin)
   #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, HIGH)
   #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, LOW)
   
