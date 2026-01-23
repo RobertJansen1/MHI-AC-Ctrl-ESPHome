@@ -10,20 +10,15 @@
     defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
   
   #define USE_ESP32_OPTIMIZATIONS
-  #include "driver/gpio.h"
-  #include "hal/gpio_ll.h"
-  #include "soc/gpio_struct.h"
   
-  // Fast GPIO macros for ESP32 family using direct register access
-  // Reading: check bit in input register
-  #define FAST_GPIO_READ(pin) ((REG_READ(GPIO_IN_REG) >> (pin)) & 0x1)
-  
-  // Writing: set or clear bit in output register
-  #define FAST_GPIO_WRITE_HIGH(pin) REG_WRITE(GPIO_OUT_W1TS_REG, (1 << (pin)))
-  #define FAST_GPIO_WRITE_LOW(pin) REG_WRITE(GPIO_OUT_W1TC_REG, (1 << (pin)))
+  // Use Arduino's optimized GPIO functions for ESP32
+  // These are already optimized in the ESP32 Arduino core
+  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, HIGH)
+  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, LOW)
   
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
-  // Standard functions work fine on ESP8266
+  // Standard functions for ESP8266
   #define FAST_GPIO_READ(pin) digitalRead(pin)
   #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, 1)
   #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, 0)
@@ -89,6 +84,13 @@ void MHI_AC_Ctrl_Core::init() {
   pinMode(SCK_PIN, INPUT);
   pinMode(MOSI_PIN, INPUT);
   pinMode(MISO_PIN, OUTPUT);
+  digitalWrite(MISO_PIN, LOW); // Set initial state
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    // ESP32 needs brief delay after pin configuration
+    delayMicroseconds(100);
+    // Set CPU to max frequency for better timing
+    setCpuFrequencyMhz(240);
+  #endif
   MHI_AC_Ctrl_Core::reset_old_values();
 }
 
@@ -273,22 +275,38 @@ static byte MOSI_frame[33];
     MOSI_byte = 0;
     byte bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      // Wait for falling edge
+      // Wait for SCK to go HIGH (if it's low)
+      while (!FAST_GPIO_READ(SCK_PIN)) {
+        if (millis() - startMillis > max_time_ms) {
+          return err_msg_timeout_SCK_high;
+        }
+      }
+      
+      // Wait for falling edge (SCK goes LOW)
       while (FAST_GPIO_READ(SCK_PIN)) {
         if (millis() - startMillis > max_time_ms) {
           return err_msg_timeout_SCK_high;
         }
       }
-      // Write MISO bit immediately after falling edge
+      
+      // Write MISO bit immediately after falling edge detected
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
         FAST_GPIO_WRITE_HIGH(MISO_PIN);
       else
         FAST_GPIO_WRITE_LOW(MISO_PIN);
+      
       // Wait for rising edge to sample MOSI
       while (!FAST_GPIO_READ(SCK_PIN)) {}
+      
+      // Small delay to ensure stable read on ESP32
+      #ifdef USE_ESP32_OPTIMIZATIONS
+        asm volatile("nop"); // Single cycle delay
+      #endif
+      
       // Sample MOSI on rising edge
       if (FAST_GPIO_READ(MOSI_PIN))
         MOSI_byte += bit_mask;
+      
       bit_mask = bit_mask << 1;
     }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
