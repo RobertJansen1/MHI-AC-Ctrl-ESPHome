@@ -268,31 +268,17 @@ static byte MOSI_frame[33];
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
-  // Disable interrupts during critical timing section
-  #ifdef USE_ESP32_OPTIMIZATIONS
-    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-    portENTER_CRITICAL(&mux);
-  #else
-    noInterrupts();
-  #endif
-  
   for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
     //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
     MOSI_byte = 0;
     byte bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      // Wait for falling edge with timeout check
-      uint32_t timeout_counter = 0;
+      // Wait for falling edge
       while (FAST_GPIO_READ(SCK_PIN)) {
-        if (++timeout_counter > 100000) { // timeout after ~100k iterations
-          #ifdef USE_ESP32_OPTIMIZATIONS
-            portEXIT_CRITICAL(&mux);
-          #else
-            interrupts();
-          #endif
+        if (millis() - startMillis > max_time_ms) {
           return err_msg_timeout_SCK_high;
         }
-      } 
+      }
       // Write MISO bit immediately after falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
         FAST_GPIO_WRITE_HIGH(MISO_PIN);
@@ -310,13 +296,6 @@ static byte MOSI_frame[33];
       MOSI_frame[byte_cnt] = MOSI_byte;
     }
   }
-  
-  // Re-enable interrupts after critical section
-  #ifdef USE_ESP32_OPTIMIZATIONS
-    portEXIT_CRITICAL(&mux);
-  #else
-    interrupts();
-  #endif
 
   checksum = calc_checksum(MOSI_frame);
   if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
