@@ -198,17 +198,27 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static byte erropdataCnt = 0;           // number of expected error operating data
   static bool doubleframe = false;
   static int frame = 1;
-static byte MOSI_frame[33];
+  static byte MOSI_frame[33];
   //                            sb0   sb1   sb2   db0   db1   db2   db3   db4   db5   db6   db7   db8   db9  db10  db11  db12  db13  db14  chkH  chkL  db15  db16  db17  db18  db19  db20  db21  db22  db23  db24  db25  db26  chk2L
   static byte MISO_frame[] = { 0xA9, 0x00, 0x07, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x22 };
 
   static uint call_counter = 0;           // counts how often this loop was called
   static unsigned long lastTroomInternalMillis = 0; // remember when Troom internal has changed
+  static unsigned long lastFrameTime = 0; // remember time of last successful frame
+  
   if (frameSize == 33)
     MISO_frame[0] = 0xAA;
 
-   
   call_counter++;
+  
+  // Frame timing synchronization: frames arrive approximately every 20ms
+  // If we're called too soon after last frame, wait for next frame start
+  unsigned long timeSinceLastFrame = millis() - lastFrameTime;
+  if (lastFrameTime > 0 && timeSinceLastFrame < 15) {
+    // Too soon - wait until we're closer to next frame (with margin)
+    delay(15 - timeSinceLastFrame);
+  }
+  
   int SCKMillis = millis();               // time of last SCK low level
   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
     if (!FAST_GPIO_READ(SCK_PIN))
@@ -696,5 +706,9 @@ static byte MOSI_frame[33];
         // Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
+  
+  // Remember successful frame time for synchronization
+  lastFrameTime = millis();
+  
   return call_counter;
 }
