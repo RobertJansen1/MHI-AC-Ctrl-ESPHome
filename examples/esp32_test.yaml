@@ -1,0 +1,207 @@
+esphome:
+  name: test-ac
+  friendly_name: test-ac
+  platformio_options:
+    board_build.f_cpu: 240000000L
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+
+ota:
+  - platform: esphome
+    password: <pass here>
+
+captive_portal:
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: <hotspot name>
+    password: <hotspot pass>
+
+web_server:
+  port: 80
+  version: 3
+
+external_components:
+  # - source: github://RobertJansen1/MHI-AC-Ctrl-ESPHome@codegen_rework
+  - source: github://RobertJansen1/MHI-AC-Ctrl-ESPHome@esp32_errors
+    components: [ MhiAcCtrl ]
+    refresh: always
+
+api:
+  reboot_timeout: 0s
+  services:
+    - service: set_external_room_temperature
+      variables: 
+        temperature_value: float # temperature to set in Celsius
+      then:
+        - climate.mhi.set_external_room_temperature:
+            temperature: !lambda 'return temperature_value;'
+
+# Version 4.4
+MhiAcCtrl:
+  # Only 20 (legacy) or 33 (includes 3D auto and vertical vanes) possible. 
+  # If you encounter mhi_ac_ctrl_core.loop error: -2 errors, change the frame_size to 20
+  frame_size: 33
+  initial_vertical_vanes_position: 5
+  initial_horizontal_vanes_position: 8
+  # Update the following to change the default room temp timeout
+  room_temp_timeout: 60
+  # external_temperature_sensor: room_temperature_sensor
+  # read_only_mode: true
+  sck_pin: "8"
+  mosi_pin: "38"
+  miso_pin: "39"
+  
+
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+
+globals:
+  - id: grid_voltage
+    type: int
+    restore_value: no
+    initial_value: "230"
+
+
+climate:
+  - platform: MhiAcCtrl
+    name: "Airco Test"
+    temperature_offset: true
+    visual_min_temperature: 17.0
+    visual:
+      temperature_step:
+        target_temperature: 0.5
+        current_temperature: 0.01
+        
+    on_control:
+      - logger.log: "Control input received; power updated!"
+      - sensor.template.publish:
+          id: power
+          state: 0
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    
+binary_sensor:
+  - platform: MhiAcCtrl
+    defrost: 
+      name: "Defrost"
+    vanes_3d_auto_enabled:
+      name: "3D Auto"
+
+sensor:
+  # - platform: homeassistant
+  #   id: room_temperature_sensor
+  #   entity_id: sensor.iaq_slaapkamer_temperature
+  - platform: MhiAcCtrl
+    current_power:
+      name: "Current power A"
+      id: ac_current_power
+      on_value:
+        then:
+          - sensor.template.publish:
+              id: power
+              state: !lambda 'return id(ac_current_power).state * id(grid_voltage);'
+  - platform: template
+    name: Test Current Power
+    id: "power"
+    unit_of_measurement: W
+    icon: mdi:lightning-bolt
+  - platform: total_daily_energy
+    name: "Daily Energy"
+    power_id: "power"
+    filters:
+        # Multiplication factor from W to kW is 0.001
+        - multiply: 0.001
+        - throttle: 300s
+    unit_of_measurement: kWh
+    method: left
+    icon: mdi:lightning-bolt
+  - platform: uptime
+    name: Uptime
+  - platform: wifi_signal
+    name: WiFi Signal
+    update_interval: 60s
+  - platform: MhiAcCtrl
+    outdoor_temperature:
+      name: "Outdoor temperature"
+    return_air_temperature:
+      name: "Return air temperature"
+    outdoor_unit_fan_speed:
+      name: "Outdoor unit fan speed"
+    indoor_unit_fan_speed:
+      name: "Indoor unit fan speed"
+    compressor_frequency:
+      name: "Compressor frequency"
+    indoor_unit_total_run_time:
+      name: "Indoor unit total run time"
+    compressor_total_run_time:
+      name: "Compressor total run time"
+    current_power:
+      name: "Current power"
+    energy_used:
+      name: "Energy used"
+    indoor_unit_thi_r1:
+      name: "Indoor (U-bend) HE temp 1"
+    indoor_unit_thi_r2:
+      name: "Indoor (capillary) HE temp 2"
+    indoor_unit_thi_r3:
+      name: "Indoor (suction header) HE temp 3"
+    outdoor_unit_tho_r1:
+      name: "Outdoor HE temp"
+    outdoor_unit_expansion_valve:
+      name: "Outdoor unit exp. valve"
+    outdoor_unit_discharge_pipe:
+      name: "Outdoor unit discharge pipe"
+    outdoor_unit_discharge_pipe_super_heat:
+      name: "Outdoor unit discharge pipe super heat"
+    protection_state_number:
+      name: "Compressor protection code"
+    error_code:
+      name: "Error code"
+    vanes_pos:
+      name: "Vanes"
+    vanesLR_pos:
+      name: "Vanes Left⁄Right"
+
+text_sensor:
+  - platform: version
+    name: ESPHome Version
+  - platform: wifi_info
+    ip_address:
+      name: IP
+    ssid:
+      name: SSID
+    bssid:
+      name: BSSID
+  - platform: MhiAcCtrl
+    protection_state: 
+      name: "Compressor protection status"
+
+select:
+  - platform: MhiAcCtrl
+    vertical_vanes:
+      name: Fan Control Up Down
+    horizontal_vanes:
+      name: Fan Control Left Right
+    fan_speed:
+      name: "Fan Speed"
+
+switch:
+  - platform: MhiAcCtrl
+    vanes_3d_auto:
+      name: "3D Auto"
