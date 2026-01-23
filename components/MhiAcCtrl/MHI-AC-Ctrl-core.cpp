@@ -11,12 +11,16 @@
   
   #define USE_ESP32_OPTIMIZATIONS
   #include "driver/gpio.h"
-  #include "soc/gpio_reg.h"
+  #include "hal/gpio_ll.h"
+  #include "soc/gpio_struct.h"
   
-  // Fast GPIO macros for ESP32 family
-  #define FAST_GPIO_READ(pin) ((GPIO_INPUT_GET(GPIO_IN_REG) >> pin) & 0x1)
-  #define FAST_GPIO_WRITE_HIGH(pin) GPIO_OUTPUT_SET(pin, 1)
-  #define FAST_GPIO_WRITE_LOW(pin) GPIO_OUTPUT_SET(pin, 0)
+  // Fast GPIO macros for ESP32 family using direct register access
+  // Reading: check bit in input register
+  #define FAST_GPIO_READ(pin) ((REG_READ(GPIO_IN_REG) >> (pin)) & 0x1)
+  
+  // Writing: set or clear bit in output register
+  #define FAST_GPIO_WRITE_HIGH(pin) REG_WRITE(GPIO_OUT_W1TS_REG, (1 << (pin)))
+  #define FAST_GPIO_WRITE_LOW(pin) REG_WRITE(GPIO_OUT_W1TC_REG, (1 << (pin)))
   
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
   // Standard functions work fine on ESP8266
