@@ -1,4 +1,4 @@
-<div style="background-color: red; height: 5px;"></div>
+<p style="background-color: red; padding: 10px; color: white;">Issues are reported with the universal airco controller!</p>
 
 # Hardware
 
