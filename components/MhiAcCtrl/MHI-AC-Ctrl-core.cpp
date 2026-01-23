@@ -3,6 +3,59 @@
 
 #include "MHI-AC-Ctrl-core.h"
 
+// Automatic chip detection and GPIO optimizations
+// ESP32 family includes: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
+#if defined(ESP32) || defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S2) || \
+    defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
+  
+  #define USE_ESP32_OPTIMIZATIONS
+  #include "hal/gpio_hal.h"
+  #include "driver/gpio.h"
+  #include "esp_wifi.h"
+  
+  // Use HAL functions for reliable GPIO access on all ESP32 variants
+  inline bool fastDigitalRead(uint8_t pin) {
+    if (pin < 32) {
+      return (GPIO.in >> pin) & 0x1;
+    } else {
+      return (GPIO.in1.val >> (pin - 32)) & 0x1;
+    }
+  }
+  
+  inline void fastDigitalWriteHigh(uint8_t pin) {
+    if (pin < 32) {
+      GPIO.out_w1ts = (1 << pin);
+    } else {
+      GPIO.out1_w1ts.val = (1 << (pin - 32));
+    }
+  }
+  
+  inline void fastDigitalWriteLow(uint8_t pin) {
+    if (pin < 32) {
+      GPIO.out_w1tc = (1 << pin);
+    } else {
+      GPIO.out1_w1tc.val = (1 << (pin - 32));
+    }
+  }
+  
+  #define FAST_GPIO_READ(pin) fastDigitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) fastDigitalWriteHigh(pin)
+  #define FAST_GPIO_WRITE_LOW(pin) fastDigitalWriteLow(pin)
+  
+#elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
+  // Standard functions for ESP8266
+  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, 1)
+  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, 0)
+  
+#else
+  // Generic fallback for other platforms
+  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, 1)
+  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, 0)
+#endif
+
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
   for (int i = 0; i < CBH; i++)
@@ -57,6 +110,30 @@ void MHI_AC_Ctrl_Core::init() {
   pinMode(SCK_PIN, INPUT);
   pinMode(MOSI_PIN, INPUT);
   pinMode(MISO_PIN, OUTPUT);
+  digitalWrite(MISO_PIN, LOW); // Set initial state
+  
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    // Note: Internal pull-ups are disabled by default to avoid conflicts with AC unit's own pull resistors
+    // If you experience signal issues, you can try enabling them:
+    // gpio_pullup_en((gpio_num_t)SCK_PIN);
+    // gpio_pullup_en((gpio_num_t)MOSI_PIN);
+    
+    // Set drive strength to maximum for MISO output for better signal quality
+    gpio_set_drive_capability((gpio_num_t)MISO_PIN, GPIO_DRIVE_CAP_3);
+    
+    // Disable WiFi/BT interrupts on core 0 to reduce timing jitter
+    // This helps when web server or other network activity causes errors
+    #if CONFIG_FREERTOS_UNICORE
+      // Single core - can't avoid WiFi interrupts
+    #else
+      // Dual core - try to keep network activity on other core
+      esp_wifi_set_ps(WIFI_PS_NONE); // Disable WiFi power save for better timing
+    #endif
+    
+    // Brief delay after pin configuration
+    delayMicroseconds(100);
+  #endif
+  
   MHI_AC_Ctrl_Core::reset_old_values();
 }
 
@@ -131,20 +208,31 @@ int MHI_AC_Ctrl_Core::loop(uint max_time_ms) {
   static byte erropdataCnt = 0;           // number of expected error operating data
   static bool doubleframe = false;
   static int frame = 1;
-static byte MOSI_frame[33];
+  static byte MOSI_frame[33];
   //                            sb0   sb1   sb2   db0   db1   db2   db3   db4   db5   db6   db7   db8   db9  db10  db11  db12  db13  db14  chkH  chkL  db15  db16  db17  db18  db19  db20  db21  db22  db23  db24  db25  db26  chk2L
   static byte MISO_frame[] = { 0xA9, 0x00, 0x07, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x22 };
 
   static uint call_counter = 0;           // counts how often this loop was called
   static unsigned long lastTroomInternalMillis = 0; // remember when Troom internal has changed
+  static unsigned long lastFrameTime = 0; // remember time of last successful frame
+  
   if (frameSize == 33)
     MISO_frame[0] = 0xAA;
 
-   
   call_counter++;
+  
+  // Frame timing synchronization: frames arrive approximately every 20ms
+  // If we're called too soon after last frame, return early to avoid mid-frame entry
+  unsigned long timeSinceLastFrame = millis() - lastFrameTime;
+  if (lastFrameTime > 0 && timeSinceLastFrame < 18) {
+    // Too soon - return and let caller try again later
+    // This prevents blocking and ESPHome warnings
+    return 0;
+  }
+  
   int SCKMillis = millis();               // time of last SCK low level
   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
-    if (!digitalRead(SCK_PIN))
+    if (!FAST_GPIO_READ(SCK_PIN))
       SCKMillis = millis();
     if (millis() - startMillis > max_time_ms)
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
@@ -236,24 +324,56 @@ static byte MOSI_frame[33];
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
+  
+  // Pre-calculate pin masks for faster access
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    const bool sck_high_reg = (SCK_PIN >= 32);
+    const bool mosi_high_reg = (MOSI_PIN >= 32);
+    const bool miso_high_reg = (MISO_PIN >= 32);
+    const uint32_t sck_mask = (1 << (SCK_PIN & 31));
+    const uint32_t mosi_mask = (1 << (MOSI_PIN & 31));
+    const uint32_t miso_mask = (1 << (MISO_PIN & 31));
+  #endif
+  
   for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
     //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
     MOSI_byte = 0;
     byte bit_mask = 1;
+    
+    // Disable interrupts only during the byte transfer for timing stability
+    #ifdef USE_ESP32_OPTIMIZATIONS
+      portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+      portENTER_CRITICAL(&mux);
+    #endif
+    
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      SCKMillis = millis();
-      while (digitalRead(SCK_PIN)) { // wait for falling edge
-        if (millis() - startMillis > max_time_ms)
-          return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
-      } 
+      // Wait for falling edge (SCK high -> low)
+      while (FAST_GPIO_READ(SCK_PIN)) {}
+      
+      // Write MISO bit immediately on falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
-        digitalWrite(MISO_PIN, 1);
+        FAST_GPIO_WRITE_HIGH(MISO_PIN);
       else
-        digitalWrite(MISO_PIN, 0);
-      while (!digitalRead(SCK_PIN)) {} // wait for rising edge
-      if (digitalRead(MOSI_PIN))
+        FAST_GPIO_WRITE_LOW(MISO_PIN);
+      
+      // Wait for rising edge (SCK low -> high)
+      while (!FAST_GPIO_READ(SCK_PIN)) {}
+      
+      // Sample MOSI right after rising edge
+      if (FAST_GPIO_READ(MOSI_PIN))
         MOSI_byte += bit_mask;
+      
       bit_mask = bit_mask << 1;
+    }
+    
+    // Re-enable interrupts after byte transfer
+    #ifdef USE_ESP32_OPTIMIZATIONS
+      portEXIT_CRITICAL(&mux);
+    #endif
+    
+    // Check for timeout between bytes (outside critical section)
+    if (millis() - startMillis > max_time_ms) {
+      return err_msg_timeout_SCK_high;
     }
     if (MOSI_frame[byte_cnt] != MOSI_byte) {
       new_datapacket_received = true;
@@ -597,5 +717,9 @@ static byte MOSI_frame[33];
         // Serial.printf("Unknown operating data, MOSI_frame[DB9]=%i MOSI_frame[D10]=%i\n", MOSI_frame[DB9], MOSI_frame[DB10]);
     }
   }
+  
+  // Remember successful frame time for synchronization
+  lastFrameTime = millis();
+  
   return call_counter;
 }
