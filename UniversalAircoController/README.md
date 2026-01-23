@@ -1,4 +1,4 @@
-<p style="background-color: red; padding: 10px; color: white;">Issues are reported with the universal airco controller!</p>
+# There is an open issue with the universal airco controller! 
 
 # Hardware
 
