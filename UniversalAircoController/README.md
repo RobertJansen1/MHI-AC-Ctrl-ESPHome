@@ -1,3 +1,5 @@
+<div style="background-color: red; height: 5px;"></div>
+
 # Hardware
 
 Hardware used:
