@@ -1,4 +1,4 @@
-# There is an open issue with the universal airco controller! 
+# There is an unresolved issue with the universal airco controller! 
 
 # Hardware
 
