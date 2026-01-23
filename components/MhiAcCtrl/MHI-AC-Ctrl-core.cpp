@@ -3,6 +3,34 @@
 
 #include "MHI-AC-Ctrl-core.h"
 
+// Automatic chip detection and GPIO optimizations
+// ESP32 family includes: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
+#if defined(ESP32) || defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S2) || \
+    defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
+  
+  #define USE_ESP32_OPTIMIZATIONS
+  #include "driver/gpio.h"
+  #include "soc/gpio_reg.h"
+  
+  // Fast GPIO macros for ESP32 family
+  #define FAST_GPIO_READ(pin) ((GPIO_INPUT_GET(GPIO_IN_REG) >> pin) & 0x1)
+  #define FAST_GPIO_WRITE_HIGH(pin) GPIO_OUTPUT_SET(pin, 1)
+  #define FAST_GPIO_WRITE_LOW(pin) GPIO_OUTPUT_SET(pin, 0)
+  
+#elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
+  // Standard functions work fine on ESP8266
+  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, 1)
+  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, 0)
+  
+#else
+  // Generic fallback for other platforms
+  #define FAST_GPIO_READ(pin) digitalRead(pin)
+  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, 1)
+  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, 0)
+#endif
+
 uint16_t calc_checksum(byte* frame) {
   uint16_t checksum = 0;
   for (int i = 0; i < CBH; i++)
@@ -144,7 +172,7 @@ static byte MOSI_frame[33];
   call_counter++;
   int SCKMillis = millis();               // time of last SCK low level
   while (millis() - SCKMillis < 5) {      // wait for 5ms stable high signal to detect a frame start
-    if (!digitalRead(SCK_PIN))
+    if (!FAST_GPIO_READ(SCK_PIN))
       SCKMillis = millis();
     if (millis() - startMillis > max_time_ms)
       return err_msg_timeout_SCK_low;       // SCK stuck@ low error detection
@@ -236,22 +264,36 @@ static byte MOSI_frame[33];
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
+  // Disable interrupts during critical timing section
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    portENTER_CRITICAL(&mux);
+  #else
+    noInterrupts();
+  #endif
+  
   for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
     //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
     MOSI_byte = 0;
     byte bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
       SCKMillis = millis();
-      while (digitalRead(SCK_PIN)) { // wait for falling edge
-        if (millis() - startMillis > max_time_ms)
+      while (FAST_GPIO_READ(SCK_PIN)) { // wait for falling edge
+        if (millis() - startMillis > max_time_ms) {
+          #ifdef USE_ESP32_OPTIMIZATIONS
+            portEXIT_CRITICAL(&mux);
+          #else
+            interrupts();
+          #endif
           return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+        }
       } 
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
-        digitalWrite(MISO_PIN, 1);
+        FAST_GPIO_WRITE_HIGH(MISO_PIN);
       else
-        digitalWrite(MISO_PIN, 0);
-      while (!digitalRead(SCK_PIN)) {} // wait for rising edge
-      if (digitalRead(MOSI_PIN))
+        FAST_GPIO_WRITE_LOW(MISO_PIN);
+      while (!FAST_GPIO_READ(SCK_PIN)) {} // wait for rising edge
+      if (FAST_GPIO_READ(MOSI_PIN))
         MOSI_byte += bit_mask;
       bit_mask = bit_mask << 1;
     }
@@ -260,6 +302,13 @@ static byte MOSI_frame[33];
       MOSI_frame[byte_cnt] = MOSI_byte;
     }
   }
+  
+  // Re-enable interrupts after critical section
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    portEXIT_CRITICAL(&mux);
+  #else
+    interrupts();
+  #endif
 
   checksum = calc_checksum(MOSI_frame);
   if (((MOSI_frame[SB0] & 0xfe) != 0x6c) | (MOSI_frame[SB1] != 0x80) | (MOSI_frame[SB2] != 0x04))
