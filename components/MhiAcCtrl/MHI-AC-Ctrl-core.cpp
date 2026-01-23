@@ -281,22 +281,26 @@ static byte MOSI_frame[33];
     MOSI_byte = 0;
     byte bit_mask = 1;
     for (uint8_t bit_cnt = 0; bit_cnt < 8; bit_cnt++) { // read and write 1 byte
-      SCKMillis = millis();
-      while (FAST_GPIO_READ(SCK_PIN)) { // wait for falling edge
-        if (millis() - startMillis > max_time_ms) {
+      // Wait for falling edge with timeout check
+      uint32_t timeout_counter = 0;
+      while (FAST_GPIO_READ(SCK_PIN)) {
+        if (++timeout_counter > 100000) { // timeout after ~100k iterations
           #ifdef USE_ESP32_OPTIMIZATIONS
             portEXIT_CRITICAL(&mux);
           #else
             interrupts();
           #endif
-          return err_msg_timeout_SCK_high;       // SCK stuck@ high error detection
+          return err_msg_timeout_SCK_high;
         }
       } 
+      // Write MISO bit immediately after falling edge
       if ((MISO_frame[byte_cnt] & bit_mask) > 0)
         FAST_GPIO_WRITE_HIGH(MISO_PIN);
       else
         FAST_GPIO_WRITE_LOW(MISO_PIN);
-      while (!FAST_GPIO_READ(SCK_PIN)) {} // wait for rising edge
+      // Wait for rising edge to sample MOSI
+      while (!FAST_GPIO_READ(SCK_PIN)) {}
+      // Sample MOSI on rising edge
       if (FAST_GPIO_READ(MOSI_PIN))
         MOSI_byte += bit_mask;
       bit_mask = bit_mask << 1;
