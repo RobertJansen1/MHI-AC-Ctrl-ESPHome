@@ -11,6 +11,7 @@
   
   #define USE_ESP32_OPTIMIZATIONS
   #include "hal/gpio_hal.h"
+  #include "driver/gpio.h"
   
   // Use HAL functions for reliable GPIO access on all ESP32 variants
   inline bool fastDigitalRead(uint8_t pin) {
@@ -109,10 +110,20 @@ void MHI_AC_Ctrl_Core::init() {
   pinMode(MOSI_PIN, INPUT);
   pinMode(MISO_PIN, OUTPUT);
   digitalWrite(MISO_PIN, LOW); // Set initial state
+  
   #ifdef USE_ESP32_OPTIMIZATIONS
-    // ESP32 needs brief delay after pin configuration
+    // Note: Internal pull-ups are disabled by default to avoid conflicts with AC unit's own pull resistors
+    // If you experience signal issues, you can try enabling them:
+    // gpio_pullup_en((gpio_num_t)SCK_PIN);
+    // gpio_pullup_en((gpio_num_t)MOSI_PIN);
+    
+    // Set drive strength to maximum for MISO output for better signal quality
+    gpio_set_drive_capability((gpio_num_t)MISO_PIN, GPIO_DRIVE_CAP_3);
+    
+    // Brief delay after pin configuration
     delayMicroseconds(100);
   #endif
+  
   MHI_AC_Ctrl_Core::reset_old_values();
 }
 
@@ -292,6 +303,17 @@ static byte MOSI_frame[33];
   //Serial.println();
   //Serial.print(F("MISO:"));
   // read/write MOSI/MISO frame
+  
+  // Pre-calculate pin masks for faster access
+  #ifdef USE_ESP32_OPTIMIZATIONS
+    const bool sck_high_reg = (SCK_PIN >= 32);
+    const bool mosi_high_reg = (MOSI_PIN >= 32);
+    const bool miso_high_reg = (MISO_PIN >= 32);
+    const uint32_t sck_mask = (1 << (SCK_PIN & 31));
+    const uint32_t mosi_mask = (1 << (MOSI_PIN & 31));
+    const uint32_t miso_mask = (1 << (MISO_PIN & 31));
+  #endif
+  
   for (uint8_t byte_cnt = 0; byte_cnt < frameSize; byte_cnt++) { // read and write a data packet of 20 bytes
     //Serial.printf("x%02x ", MISO_frame[byte_cnt]);
     MOSI_byte = 0;
