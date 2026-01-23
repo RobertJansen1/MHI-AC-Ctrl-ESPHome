@@ -10,18 +10,36 @@
     defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
   
   #define USE_ESP32_OPTIMIZATIONS
-  #include "soc/gpio_struct.h"
-  #include "driver/gpio.h"
+  #include "hal/gpio_hal.h"
   
-  // Use inline GPIO reads for speed on ESP32
-  // Keep digitalWrite for writes as it handles pin mapping correctly
+  // Use HAL functions for reliable GPIO access on all ESP32 variants
   inline bool fastDigitalRead(uint8_t pin) {
-    return (GPIO.in >> pin) & 0x1;
+    if (pin < 32) {
+      return (GPIO.in >> pin) & 0x1;
+    } else {
+      return (GPIO.in1.val >> (pin - 32)) & 0x1;
+    }
+  }
+  
+  inline void fastDigitalWriteHigh(uint8_t pin) {
+    if (pin < 32) {
+      GPIO.out_w1ts = (1 << pin);
+    } else {
+      GPIO.out1_w1ts.val = (1 << (pin - 32));
+    }
+  }
+  
+  inline void fastDigitalWriteLow(uint8_t pin) {
+    if (pin < 32) {
+      GPIO.out_w1tc = (1 << pin);
+    } else {
+      GPIO.out1_w1tc.val = (1 << (pin - 32));
+    }
   }
   
   #define FAST_GPIO_READ(pin) fastDigitalRead(pin)
-  #define FAST_GPIO_WRITE_HIGH(pin) digitalWrite(pin, HIGH)
-  #define FAST_GPIO_WRITE_LOW(pin) digitalWrite(pin, LOW)
+  #define FAST_GPIO_WRITE_HIGH(pin) fastDigitalWriteHigh(pin)
+  #define FAST_GPIO_WRITE_LOW(pin) fastDigitalWriteLow(pin)
   
 #elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
   // Standard functions for ESP8266
